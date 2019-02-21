@@ -1,0 +1,126 @@
+This is Quixadhal's fork of Bo Zimmerman's CoffeeMUD.
+
+It's called CoyoteMUD, because my hope is that it can replace
+my aging DikuMUD Alfa game, which has been called WileyMUD since
+1993.
+
+I've had fun with that MUD, both in its original form as a player,
+and later as the maintainer, but over the years, I've grown to
+have less patience for all the fiddling one has to do with old
+school C code, and there are many better languages that can easily
+do the job these days.
+
+Java is not my first choice of a language, however, CoffeeMUD
+seems to have the most similar "feel" to DikuMUD of any of the
+existing non-C codebases out there, and I'd rather start with
+something modern, feature rich, and actively maintained, working
+to modify the gameplay mechanics and content to fit WileyMUD's
+needs, than have to write my own system from the ground up.
+
+And, truth be told, learning java isn't a bad thing.  I may even
+learn to like it.  We'll see.
+
+These are the steps I did to fork the repository:
+
+    On Github, I navigated to https://github.com/bozimmerman/CoffeeMud
+    and cliked "Fork", and selected my own account.
+
+    This created a clone in my account, which I then renamed
+    to CoyoteMUD.
+
+    At this point, I cloned my copy of the repository to my
+    local machine, as usual, via:
+
+        git clone 'git@github.com:quixadhal/CoyoteMUD.git' CoyoteMUD
+
+    Then, I set up my repository to be able to accept updates from
+    Bo's repository with these commands:
+
+        git remote add upstream 'git@github.com:bozimmerman/CoffeeMud.git'
+        git fetch upstream
+        git rebase upstream/master
+
+    My understanding of git is that "fetch + rebase" is a way to 
+    pull down changes from the original repository and then apply
+    (replay, if you will) your local changes to the newly updated
+    pristine version.
+
+    This is different than "fetch + merge", which would attemp to
+    pull down changes from the original, but merge them on top of
+    your locally changed version.
+
+    So, rebase favors the original, allowing your changes to fail
+    and need to be hand-merged.  Merge favors your local copy,
+    allowing the remote updates to fail and need to be hand-merged.
+
+    The merge command would be:
+
+        git merge upstream/master master
+
+    Hopefully, this will work as expected!
+
+    From the documentation:
+
+        It is possible that a merge failure will prevent this process from being completely
+        automatic. You will have to resolve any such merge failure and run git rebase
+        --continue. Another option is to bypass the commit that caused the merge failure with
+        git rebase --skip. To check out the original <branch> and remove the .git/rebase-apply
+        working files, use the command git rebase --abort instead.
+
+    and...
+
+        In case of conflict, git rebase will stop at the first problematic commit and leave
+        conflict markers in the tree. You can use git diff to locate the markers (<<<<<<) and
+        make edits to resolve the conflict. For each file you edit, you need to tell Git that
+        the conflict has been resolved, typically this would be done with
+
+            git add <filename>
+
+        After resolving the conflict manually and updating the index with the desired
+        resolution, you can continue the rebasing process with
+
+            git rebase --continue
+
+        Alternatively, you can undo the git rebase with
+
+            git rebase --abort
+
+Just as further comments about git...
+
+    I haven't done anything with this yet, but I know Bo actively works on CoffeeMUD almost
+    every day, so of course I want to merge his changes into my fork frequently, at least
+    until and unless I diverge things so much that the process becomes untenable.
+
+    Once  you do the above fetch/rebase operation on your local clone of the github
+    repository, you will find yourself in a state where you are now "behind" the github
+    version.
+
+    At this point, you have to do a git pull, to sync yourself to the github copy, so you
+    can do a git push to migrate the new merges up to github.  It seems very counter-intuitive,
+    since with that verbage, you'd think you were trying to undo the changes you just fetched
+    from the original repository.
+
+One thing that's very annoying when using the above strategy, you end up with conflicts and
+a huge number of extra commits, even when nothing you're changing actually has conflicts.
+
+I literally have ONE text file, at this point, which doesn't exist in the upstream repository
+at all... but because of the funky way rebase works, it managed to cause a 3-way merge between
+my local commit, my github version, AND the non-existent version of the upstream branch.
+
+Rubbish.
+
+I deleted the whole repositry and will try again using the more traditional fetch/merge
+(or pull) strategy.  That still generates extra commits via each merge, but the last time
+I used it, it didn't cause bizzaro behaviors like the above.
+
+So, in summary:
+
+    Fork Bo's repository to my own Github account.
+    git remote add upstream 'git@github.com:bozimmerman/CoffeeMud.git'
+
+Then pull down updates via:
+    git fetch upstream
+    git merge upstream/master master
+or
+    git pull upstream master
+
