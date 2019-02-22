@@ -717,9 +717,12 @@ public class CoffeeMaker extends StdLibrary implements GenericBuilder
 					final boolean recurCheck = savedDeadBodyM.isContent((DeadBody)E);
 					if(recurCheck)
 						savedDeadBodyM.delItem((DeadBody)E);
-					text.append("<MOBS>"+getMobXML(savedDeadBodyM)+"</MOBS>");
-					if(recurCheck)
-						savedDeadBodyM.addItem((DeadBody)E);
+					else
+					{
+						text.append("<MOBS>"+getMobXML(savedDeadBodyM)+"</MOBS>");
+						if(recurCheck)
+							savedDeadBodyM.addItem((DeadBody)E);
+					}
 				}
 				if(((DeadBody)E).getKillerTool()==null)
 					text.append("<KLTOOL />");
