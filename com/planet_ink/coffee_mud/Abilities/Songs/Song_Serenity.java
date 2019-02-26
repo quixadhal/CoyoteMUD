@@ -75,8 +75,12 @@ public class Song_Serenity extends Song
 			return super.okMessage(myHost,msg);
 		if((CMath.bset(msg.targetMajor(),CMMsg.MASK_MALICIOUS))
 		&&(CMLib.flags().canBeHeardSpeakingBy(invoker,msg.source()))
-		&&(!CMath.bset(msg.sourceMajor(),CMMsg.MASK_ALWAYS))
-		&&(msg.target()!=null))
+		&&(msg.target() instanceof MOB)
+		&&((!CMath.bset(msg.sourceMajor(),CMMsg.MASK_ALWAYS))
+			||((msg.tool() instanceof Ability)&&((((Ability)msg.tool()).classificationCode()&Ability.ALL_ACODES)==Ability.ACODE_SONG)))
+		&&((invoker()==null)
+			||(CMLib.dice().rollPercentage()>((msg.source().phyStats().level()-invoker().phyStats().level()-getXLEVELLevel(invoker()))*20)))
+		)
 		{
 			if((msg.tool() instanceof Ability)
 			&&(((Ability)msg.tool()).invoker()==invoker)
@@ -85,9 +89,9 @@ public class Song_Serenity extends Song
 			&&(((MOB)msg.target()).fetchEffect(msg.tool().ID())!=null)
 			&&(((Ability)msg.tool()).canBeUninvoked()))
 				((Ability)msg.tool()).unInvoke();
-
+			else
+				msg.source().tell(L("You feel too peaceful to fight."));
 			msg.source().makePeace(true);
-			msg.source().tell(L("You feel too peaceful to fight."));
 			if(msg.target() instanceof MOB)
 			{
 				final MOB targetM=(MOB)msg.target();

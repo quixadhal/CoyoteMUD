@@ -64,18 +64,11 @@ public class Dance_Basse extends Dance
 	public boolean okMessage(final Environmental myHost, final CMMsg msg)
 	{
 		if(((msg.targetMajor()&CMMsg.MASK_MALICIOUS)>0)
-		&&(!CMath.bset(msg.sourceMajor(),CMMsg.MASK_ALWAYS))
+		&&((!CMath.bset(msg.sourceMajor(),CMMsg.MASK_ALWAYS))
+			||((msg.tool() instanceof Ability)&&((((Ability)msg.tool()).classificationCode()&Ability.ALL_ACODES)==Ability.ACODE_SONG)))
 		&&((msg.amITarget(affected))))
 		{
 			final MOB target=(MOB)msg.target();
-			if((msg.tool() instanceof Ability)
-			&&(((Ability)msg.tool()).invoker()==invoker)
-			&&((((Ability)msg.tool()).classificationCode()&Ability.ALL_ACODES)==Ability.ACODE_SONG)
-			&&(msg.target() instanceof MOB)
-			&&(((MOB)msg.target()).fetchEffect(msg.tool().ID())!=null)
-			&&(((Ability)msg.tool()).canBeUninvoked()))
-				((Ability)msg.tool()).unInvoke();
-
 			if((!target.isInCombat())
 			&&(msg.source().getVictim()!=target)
 			&&(msg.source().location()==target.location())
