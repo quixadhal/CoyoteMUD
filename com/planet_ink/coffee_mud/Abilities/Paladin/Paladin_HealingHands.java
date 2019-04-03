@@ -98,11 +98,8 @@ public class Paladin_HealingHands extends StdAbility
 		if(!CMLib.flags().isAliveAwakeMobileUnbound(mob,false))
 			return false;
 
-		if((!auto)&&(!(CMLib.flags().isGood(mob))))
-		{
-			mob.tell(L("Your alignment has alienated your god from you."));
+		if(!PaladinSkill.paladinAlignmentCheck(this, mob, auto))
 			return false;
-		}
 
 		final int healing=1+((int)Math.round(CMath.div(adjustedLevel(mob,asLevel),4.0)));
 		if(mob.curState().getMana()<healing)

@@ -5,6 +5,7 @@ import com.planet_ink.coffee_mud.Libraries.interfaces.ExpertiseLibrary.Expertise
 import com.planet_ink.coffee_mud.Libraries.interfaces.ExpertiseLibrary.SkillCost;
 import com.planet_ink.coffee_mud.core.interfaces.*;
 import com.planet_ink.coffee_mud.core.*;
+import com.planet_ink.coffee_mud.core.CMSecurity.SecFlag;
 import com.planet_ink.coffee_mud.core.collections.*;
 import com.planet_ink.coffee_mud.Abilities.interfaces.*;
 import com.planet_ink.coffee_mud.Areas.interfaces.*;
@@ -241,7 +242,7 @@ public class ColumbiaUniv extends StdLibrary implements ExpertiseLibrary
 				return 0;
 			for(final ExpertiseLibrary.Flag flag : ExpertiseLibrary.Flag.values())
 			{
-				xFlagCache[flag.ordinal()]=CMLib.expertises().getApplicableExpertiseLevel(abilityID,flag,mob)
+				xFlagCache[flag.ordinal()]=getApplicableExpertiseLevel(abilityID,flag,mob)
 											+charClass.addedExpertise(mob, flag, abilityID);
 			}
 			usageCache[Ability.CACHEINDEX_EXPERTISE]=xFlagCache;
@@ -384,7 +385,70 @@ public class ColumbiaUniv extends StdLibrary implements ExpertiseLibrary
 	@Override
 	public String[] getApplicableExpertises(final String ID, final Flag code)
 	{
+		if(code == null)
+		{
+			final Set<String> all=new TreeSet<String>();
+			for(final Flag f : Flag.values())
+			{
+				final String[] set=completeUsageMaps[f.ordinal()].get(ID);
+				if(set != null)
+					all.addAll(Arrays.asList(set));
+			}
+			return all.toArray(new String[0]);
+		}
 		return completeUsageMaps[code.ordinal()].get(ID);
+	}
+
+	@Override
+	public ExpertiseDefinition getConfirmedDefinition(final MOB mob, final String ID)
+	{
+		if(mob == null)
+			return getDefinition(ID);
+		if(ID!=null)
+		{
+			final ExpertiseDefinition def=getDefinition(ID);
+			if(def != null)
+			{
+				final Pair<String,Integer> e=mob.fetchExpertise(ID);
+				if((e!=null)
+				&&(e.getValue()!=null))
+				{
+					final int level = getConfirmedExpertiseLevel(mob, def.getBaseName(), e);
+					if(level == e.second.intValue())
+						return def;
+					if(level == 0)
+						return null;
+					return getDefinition(def.getBaseName()+level);
+				}
+			}
+			return completeEduMap.get(ID.trim().toUpperCase());
+		}
+		return null;
+	}
+
+	protected int getConfirmedExpertiseLevel(final MOB mob, final String baseID, final Pair<String,Integer> e)
+	{
+		if((!mob.isMonster())
+		&&(!CMSecurity.isAllowedEverywhere(mob, SecFlag.ALLSKILLS)))
+		{
+			final ExpertiseDefinition def=getDefinition(baseID+e.getValue().toString());
+			if((def == null)
+			||(!CMLib.masking().maskCheck(def.compiledListMask(), mob, true))
+			||(!CMLib.masking().maskCheck(def.compiledFinalMask(), mob, true)))
+			{
+				final List<String> defList = getStageCodes(baseID);
+				for(int i = defList.size()-e.getValue().intValue();i<defList.size();i++)
+				{
+					final ExpertiseDefinition def2=getDefinition(defList.get(i));
+					if((def2 != null)
+					&&(CMLib.masking().maskCheck(def2.compiledListMask(), mob, true))
+					&&(CMLib.masking().maskCheck(def2.compiledFinalMask(), mob, true)))
+						return this.getStageNumber(def2);
+				}
+				return 0;
+			}
+		}
+		return e.getValue().intValue();
 	}
 
 	@Override
@@ -394,15 +458,19 @@ public class ColumbiaUniv extends StdLibrary implements ExpertiseLibrary
 		if((applicableExpIDs==null)||(applicableExpIDs.length<1))
 			return 0;
 		final Pair<String,Integer> e=mob.fetchExpertise(applicableExpIDs[0]);
-		if((e!=null)&&(e.getValue()!=null))
+		if((e!=null)
+		&&(e.getValue()!=null))
 			return e.getValue().intValue();
+			//return getConfirmedExpertiseLevel(mob, applicableExpIDs[0], e);
 		if(applicableExpIDs.length<2)
 			return 0;
 		for(final String expID : applicableExpIDs)
 		{
 			final Pair<String,Integer> e2=mob.fetchExpertise(expID);
-			if((e2!=null)&&(e2.getValue()!=null))
+			if((e2!=null)
+			&&(e2.getValue()!=null))
 				return e2.getValue().intValue();
+				//return getConfirmedExpertiseLevel(mob, applicableExpIDs[0], e2);
 		}
 		return 0;
 	}
@@ -745,7 +813,7 @@ public class ColumbiaUniv extends StdLibrary implements ExpertiseLibrary
 		for(;i.hasNext();)
 		{
 			final String id=i.next();
-			final ExpertiseDefinition def=CMLib.expertises().getDefinition(id);
+			final ExpertiseDefinition def=getDefinition(id);
 			if((def != null)
 			&&(!(def.ID().equals(def.getBaseName()+"1")||def.ID().equals(def.getBaseName()+"I")||(def.ID().equals(def.getBaseName())))))
 			{

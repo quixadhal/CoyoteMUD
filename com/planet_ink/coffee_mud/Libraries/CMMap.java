@@ -30,6 +30,7 @@ import java.lang.ref.WeakReference;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.MathContext;
+import java.math.RoundingMode;
 import java.util.*;
 import java.util.Map.Entry;
 /*
@@ -55,23 +56,25 @@ public class CMMap extends StdLibrary implements WorldMap
 		return "CMMap";
 	}
 
-	public static final BigDecimal TWO 					= BigDecimal.valueOf(2L);
+	public final double			ZERO_ALMOST			= 0.000001;
+	public final BigDecimal 	ALMOST_ZERO			= BigDecimal.valueOf(ZERO_ALMOST);
+	public final BigDecimal 	ONE 				= BigDecimal.valueOf(1L);
+	public final BigDecimal 	TWO 				= BigDecimal.valueOf(2L);
+	public final double			PI_ALMOST			= Math.PI-ZERO_ALMOST;
+	public final double			PI_TIMES_2			= Math.PI*2.0;
+	public final double			PI_BY_2				= Math.PI/2.0;
+	public final int			QUADRANT_WIDTH  	= 10;
+	public static MOB   		deityStandIn		= null;
+	public long 				lastVReset  		= 0;
+	public CMNSortSVec<Area>	areasList   		= new CMNSortSVec<Area>();
+	public List<Deity>  		deitiesList 		= new SVector<Deity>();
+	public List<BoardableShip>	shipList 			= new SVector<BoardableShip>();
+	public List<PostOffice> 	postOfficeList  	= new SVector<PostOffice>();
+	public List<Auctioneer> 	auctionHouseList	= new SVector<Auctioneer>();
+	public List<Banker> 		bankList			= new SVector<Banker>();
+	public List<Librarian> 		libraryList			= new SVector<Librarian>();
+	public RTree<SpaceObject>	space				= new RTree<SpaceObject>();
 
-	public final double			ZERO_ALMOST				= 0.000001;
-	public final double			PI_ALMOST				= Math.PI-ZERO_ALMOST;
-	public final double			PI_TIMES_2				= Math.PI*2.0;
-	public final double			PI_BY_2					= Math.PI/2.0;
-	public final int			QUADRANT_WIDTH  		= 10;
-	public static MOB   		deityStandIn			= null;
-	public long 				lastVReset  			= 0;
-	public CMNSortSVec<Area>	areasList   			= new CMNSortSVec<Area>();
-	public List<Deity>  		deitiesList 			= new SVector<Deity>();
-	public List<BoardableShip>	shipList 				= new SVector<BoardableShip>();
-	public List<PostOffice> 	postOfficeList  		= new SVector<PostOffice>();
-	public List<Auctioneer> 	auctionHouseList		= new SVector<Auctioneer>();
-	public List<Banker> 		bankList				= new SVector<Banker>();
-	public List<Librarian> 		libraryList				= new SVector<Librarian>();
-	public RTree<SpaceObject>	space					= new RTree<SpaceObject>();
 	protected Map<String,Object>SCRIPT_HOST_SEMAPHORES	= new Hashtable<String,Object>();
 
 	protected static final Comparator<Area>	areaComparator = new Comparator<Area>()
@@ -676,41 +679,48 @@ public class CMMap extends StdLibrary implements WorldMap
 	@Override
 	public TechComponent.ShipDir getDirectionFromDir(final double[] facing, final double roll, final double[] direction)
 	{
-
-		double yD = ((Math.toDegrees(facing[0]) % 360.0) - (Math.toDegrees(facing[0]) % 360.0)) % 360.0;
+		//Log.debugOut("facing="+(Math.toDegrees(facing[0]) % 360.0)+","+(Math.toDegrees(facing[1]) % 180.0));
+		//Log.debugOut("direction="+(Math.toDegrees(direction[0]) % 360.0)+","+(Math.toDegrees(direction[1]) % 180.0));
+		double yD = ((Math.toDegrees(facing[0]) % 360.0) - (Math.toDegrees(direction[0]) % 360.0)) % 360.0;
 		if(yD < 0)
 			yD = 360.0 + yD;
-		double pD = ((Math.toDegrees(facing[1]) % 180.0) - (Math.toDegrees(direction[1]) % 180.0)) % 180.0;
-		if(pD < 0)
-			pD = 180.0 + pD;
+		final double pD = Math.abs(((Math.toDegrees(facing[1]) % 180.0) - (Math.toDegrees(direction[1]) % 180.0)) % 180.0);
+		//Log.debugOut("yD,pD="+yD+","+pD);
 		double rD = (yD + (Math.toDegrees(roll) % 360.0)) % 360.0;
 		if(rD < 0)
 			rD = 360.0 + rD;
+		//Log.debugOut("rD="+rD);
 		if(pD<45 || pD > 135)
 		{
 			if(yD < 45.0 || yD > 315.0)
-				return ShipDir.AFT;
-			if(yD> 135.0 && yD < 225.0)
 				return ShipDir.FORWARD;
+			if(yD> 135.0 && yD < 225.0)
+				return ShipDir.AFT;
 		}
 		if(rD >= 315.0 || rD<45.0)
 			return ShipDir.DORSEL;
 		if(rD >= 45.0 && rD <135.0)
-			return ShipDir.STARBOARD;
+			return ShipDir.PORT;
 		if(rD >= 135.0 && rD <225.0)
 			return ShipDir.VENTRAL;
 		if(rD >= 225.0 && rD <315.0)
-			return ShipDir.PORT;
+			return ShipDir.STARBOARD;
 		return ShipDir.AFT;
 	}
 
 	@Override
-	public double[] getDirection(final SpaceObject FROM, final SpaceObject TO)
+	public double[] getDirection(final SpaceObject fromObj, final SpaceObject toObj)
+	{
+		return getDirection(fromObj.coordinates(),toObj.coordinates());
+	}
+
+	@Override
+	public double[] getDirection(final long[] fromCoords, final long[] toCoords)
 	{
 		final double[] dir=new double[2];
-		final double x=TO.coordinates()[0]-FROM.coordinates()[0];
-		final double y=TO.coordinates()[1]-FROM.coordinates()[1];
-		final double z=TO.coordinates()[2]-FROM.coordinates()[2];
+		final double x=toCoords[0]-fromCoords[0];
+		final double y=toCoords[1]-fromCoords[1];
+		final double z=toCoords[2]-fromCoords[2];
 		if((x!=0)||(y!=0))
 		{
 			if(x<0)
@@ -1127,6 +1137,25 @@ public class CMMap extends StdLibrary implements WorldMap
 		if(area == null)
 			return "";
 		return area.Name()+"#?";
+	}
+
+	@Override
+	public String getApproximateExtendedRoomID(final Room room)
+	{
+		if(room==null)
+			return "";
+		Room validRoom = CMLib.tracking().getNearestValidIDRoom(room);
+		if(validRoom != null)
+		{
+			if((validRoom instanceof GridLocale)
+			&&(validRoom.roomID()!=null)
+			&&(validRoom.roomID().length()>0))
+				validRoom=((GridLocale)validRoom).getRandomGridChild();
+			return getExtendedRoomID(validRoom);
+		}
+		if(room.getArea()!=null)
+			return room.getArea().Name()+"#?";
+		return "";
 	}
 
 	@Override
@@ -1811,12 +1840,25 @@ public class CMMap extends StdLibrary implements WorldMap
 
 	protected void delShip(final BoardableShip oneToDel)
 	{
-		shipList.remove(oneToDel);
 		if(oneToDel!=null)
 		{
+			shipList.remove(oneToDel);
+			final Item shipI = oneToDel.getShipItem();
+			if(shipI instanceof BoardableShip)
+			{
+				final BoardableShip boardableShipI = (BoardableShip)shipI;
+				shipList.remove(boardableShipI);
+			}
 			final Area area=oneToDel.getShipArea();
 			if(area!=null)
+			{
+				if(area instanceof BoardableShip)
+				{
+					final BoardableShip boardableShipA = (BoardableShip)area;
+					shipList.remove(boardableShipA);
+				}
 				area.setAreaState(Area.State.STOPPED);
+			}
 		}
 	}
 
@@ -1936,10 +1978,11 @@ public class CMMap extends StdLibrary implements WorldMap
 	@Override
 	public PostOffice getPostOffice(final String chain, final String areaNameOrBranch)
 	{
+		final boolean anyArea = areaNameOrBranch.equalsIgnoreCase("*");
 		for (final PostOffice P : postOfficeList)
 		{
 			if((P.postalChain().equalsIgnoreCase(chain))
-			&&(P.postalBranch().equalsIgnoreCase(areaNameOrBranch)))
+			&&((anyArea)||(P.postalBranch().equalsIgnoreCase(areaNameOrBranch))))
 				return P;
 		}
 
@@ -3374,7 +3417,7 @@ public class CMMap extends StdLibrary implements WorldMap
 		if(o instanceof Deity)
 			delDeity((Deity)o);
 
-		if(o instanceof BoardableShip)
+		if((o instanceof BoardableShip)&&(!(o instanceof Area)))
 			delShip((BoardableShip)o);
 
 		if(o instanceof PostOffice)
@@ -4152,64 +4195,26 @@ public class CMMap extends StdLibrary implements WorldMap
 	}
 
 	@Override
-	public double getMinDistanceFrom(final SpaceObject FROM, final long prevDistance, final SpaceObject TO)
+	public double getMinDistanceFrom(final SpaceObject fromObj, final long prevDistance, final SpaceObject toObj)
 	{
-		final long curDistance = getDistanceFrom(FROM.coordinates(), TO.coordinates());
-		final double baseDistance=FROM.speed();
-		if(baseDistance==0)
+		final long curDistance = getDistanceFrom(fromObj.coordinates(), toObj.coordinates());
+		final double baseDistance=fromObj.speed();
+		if(baseDistance == 0)
 			return curDistance;
-		final double cd2=(curDistance * curDistance);
-		final double pd2=(prevDistance * prevDistance);
-		final double sp2=(baseDistance * baseDistance);
-		final double angleCurDistance=Math.acos((pd2+sp2-cd2) / (2.0 * baseDistance * prevDistance));
-		final double anglePrevDistance=Math.acos((cd2+sp2-pd2) / (2.0 * baseDistance * curDistance));
-		final long minDistance;
-		if(baseDistance < curDistance/1000.0)
-			return curDistance;
-		else
-		if(baseDistance < prevDistance/1000.0)
-			return prevDistance;
-		else
-		if(angleCurDistance > 1.5708)
-			minDistance=curDistance;
-		else
-		if(anglePrevDistance > 1.5708)
-			minDistance=prevDistance;
-		else
-		{
-			try
-			{
-				final BigDecimal s=new BigDecimal(prevDistance/2.0)
-									.add(new BigDecimal(curDistance/2.0))
-									.add(new BigDecimal(baseDistance/2.0));
-				final BigDecimal s1=s.subtract(new BigDecimal(prevDistance));
-				final BigDecimal s2=s.subtract(new BigDecimal(curDistance));
-				final BigDecimal s3=s.subtract(new BigDecimal(baseDistance));
-				final BigDecimal aa=s.multiply(s1).multiply(s2).multiply(s3);
-				final MathContext mc= MathContext.DECIMAL64;
-				BigDecimal area = aa.divide(TWO, mc);
-				boolean done = false;
-				final int maxIterations = mc.getPrecision() + 1;
-				for (int i = 0; !done && i < maxIterations; i++)
-				{
-					// area can be 0 here because aa was 0 because s2 becomes 0 through luck.
-					// something is wrong with this formula.
-					BigDecimal r = aa.divide(area, mc);
-					r = r.add(area);
-					r = r.divide(TWO, mc);
-					done = r.equals(area);
-					area = r;
-				}
-				final double height=2.0 * (area.doubleValue()/baseDistance);
-				minDistance=Math.round(height);
-			}
-			catch(final Throwable t)
-			{
-				Log.errOut("Bad Math: "+curDistance+","+prevDistance+","+baseDistance+"  -- " + FROM.speed());
-				Log.errOut(t);
-				return (prevDistance + curDistance) / 2.0;
-			}
-		}
-		return minDistance;
+		if((prevDistance == 0)||(curDistance==0))
+			return 0;
+		if(baseDistance == (curDistance + prevDistance))
+			return 0.0;
+		final BigDecimal bdBaseDistance = new BigDecimal(baseDistance);
+		final BigDecimal bdCurDistance = new BigDecimal(curDistance);
+		final BigDecimal bdPrevDistance = new BigDecimal(prevDistance);
+		final BigDecimal s0=bdCurDistance.multiply(bdCurDistance);
+		final BigDecimal s1=bdPrevDistance.multiply(bdPrevDistance);
+		final BigDecimal s2=bdBaseDistance.multiply(bdBaseDistance);
+		BigDecimal s3=bdPrevDistance.multiply(bdBaseDistance).multiply(TWO);
+		if(s3.doubleValue()==0.0)
+			s3=ONE;
+		final double distAngle = Math.acos(s0.add(s2).subtract(s1).divide(s3,MathContext.DECIMAL64.getPrecision(),RoundingMode.HALF_UP).doubleValue());
+		return Math.round(prevDistance * Math.sin(distAngle));
 	}
 }

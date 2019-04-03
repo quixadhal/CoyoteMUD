@@ -36,7 +36,6 @@ import com.planet_ink.coffee_mud.Libraries.interfaces.XMLLibrary.XMLTag;
    See the License for the specific language governing permissions and
    limitations under the License.
 */
-@SuppressWarnings({"unchecked","rawtypes"})
 public class Conquerable extends Arrest
 {
 	@Override
@@ -99,14 +98,15 @@ public class Conquerable extends Arrest
 		return holdingClan;
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public CMObject copyOf()
 	{
 		final Conquerable obj=(Conquerable)super.copyOf();
-		obj.clanItems=(Vector)clanItems.clone();
+		obj.clanItems=(Vector<ClanItem>)clanItems.clone();
 		obj.clanControlPoints=clanControlPoints.copyOf();
 		obj.assaults=assaults.copyOf();
-		obj.noMultiFollows=(Vector)noMultiFollows.clone();
+		obj.noMultiFollows=(Vector<MOB>)noMultiFollows.clone();
 		return obj;
 	}
 
@@ -316,9 +316,9 @@ public class Conquerable extends Arrest
 
 		if(myArea!=null)
 		{
-			for(final Enumeration e=myArea.getMetroMap();e.hasMoreElements();)
+			for(final Enumeration<Room> e=myArea.getMetroMap();e.hasMoreElements();)
 			{
-				final Room R=(Room)e.nextElement();
+				final Room R=e.nextElement();
 				for(int i=0;i<R.numInhabitants();i++)
 				{
 					final MOB M=R.fetchInhabitant(i);
@@ -420,7 +420,7 @@ public class Conquerable extends Arrest
 
 	protected void announceToArea(final Area area, final String clanID, final int amount)
 	{
-		final Clan C=CMLib.clans().fetchClan(clanID);
+		final Clan C=CMLib.clans().getClanExact(clanID);
 		if(C!=null)
 			CMLib.achievements().possiblyBumpAchievement(C.getResponsibleMember(), AchievementLibrary.Event.CONQUESTPOINTS, amount, C, myArea);
 		for(final Session S : CMLib.sessions().localOnlineIterable())
@@ -556,9 +556,9 @@ public class Conquerable extends Arrest
 									}
 									if((foundMOB==null)&&(MOBname.length()>0))
 									{
-										for(final Enumeration e=A.getMetroMap();e.hasMoreElements();)
+										for(final Enumeration<Room> e=A.getMetroMap();e.hasMoreElements();)
 										{
-											final Room R2=(Room)e.nextElement();
+											final Room R2=e.nextElement();
 											for(int i=0;i<R2.numInhabitants();i++)
 											{
 												final MOB M=R2.fetchInhabitant(i);
@@ -776,9 +776,9 @@ public class Conquerable extends Arrest
 		totalControlPoints=0;
 		final String worship=getManadatoryWorshipID();
 		final Clan C=(holdingClan!=null)?CMLib.clans().getClanAnyHost(holdingClan):null;
-		for(final Enumeration e=A.getMetroMap();e.hasMoreElements();)
+		for(final Enumeration<Room> e=A.getMetroMap();e.hasMoreElements();)
 		{
-			final Room R=(Room)e.nextElement();
+			final Room R=e.nextElement();
 			for(int i=0;i<R.numInhabitants();i++)
 			{
 				final MOB M=R.fetchInhabitant(i);
@@ -946,7 +946,7 @@ public class Conquerable extends Arrest
 			return;
 		Clan C=CMLib.clans().getClanAnyHost(clanID);
 		if(C==null)
-			C=CMLib.clans().fetchClan(clanID);
+			C=CMLib.clans().getClanExact(clanID);
 		if((C==null)||(!C.getGovernment().isConquestEnabled()))
 			return;
 
@@ -954,9 +954,9 @@ public class Conquerable extends Arrest
 		mob.setName(clanID);
 		if(myArea!=null)
 		{
-			for(final Enumeration e=myArea.getMetroMap();e.hasMoreElements();)
+			for(final Enumeration<Room> e=myArea.getMetroMap();e.hasMoreElements();)
 			{
-				if(!((Room)e.nextElement()).show(mob,myArea,null,CMMsg.MSG_AREAAFFECT,null,CMMsg.MSG_AREAAFFECT,L("CONQUEST"),CMMsg.MSG_AREAAFFECT,null))
+				if(!e.nextElement().show(mob,myArea,null,CMMsg.MSG_AREAAFFECT,null,CMMsg.MSG_AREAAFFECT,L("CONQUEST"),CMMsg.MSG_AREAAFFECT,null))
 				{
 					Log.errOut("Conquest","Conquest was stopped in "+myArea.name()+" for "+clanID+".");
 					return;
@@ -983,9 +983,9 @@ public class Conquerable extends Arrest
 			&& (!areaTitle.getOwnerName().equalsIgnoreCase(holdingClan)))
 				areaTitle.setOwnerName(holdingClan);
 			final String worship=getManadatoryWorshipID();
-			for(final Enumeration e=myArea.getMetroMap();e.hasMoreElements();)
+			for(final Enumeration<Room> e=myArea.getMetroMap();e.hasMoreElements();)
 			{
-				final Room R=(Room)e.nextElement();
+				final Room R=e.nextElement();
 				if(R!=null)
 				{
 					final LandTitle T=CMLib.law().getLandTitle(R);
@@ -1058,7 +1058,7 @@ public class Conquerable extends Arrest
 	{
 		Clan C=CMLib.clans().fetchClanAnyHost(clanID);
 		if(C==null)
-			C=CMLib.clans().fetchClan(clanID);
+			C=CMLib.clans().getClanExact(clanID);
 		if((C==null)||(!C.getGovernment().isConquestEnabled()))
 			return false;
 		return flagFound(A,C);
@@ -1088,9 +1088,9 @@ public class Conquerable extends Arrest
 			// make a desperation check if we are talking about the holding clan.
 			Room R=null;
 			Item I=null;
-			for(final Enumeration e=myArea.getCompleteMap();e.hasMoreElements();)
+			for(final Enumeration<Room> e=myArea.getCompleteMap();e.hasMoreElements();)
 			{
-				R=(Room)e.nextElement();
+				R=e.nextElement();
 				for(int i=0;i<R.numItems();i++)
 				{
 					I=R.getItem(i);
@@ -1153,7 +1153,7 @@ public class Conquerable extends Arrest
 			}
 			if(amount > 0)
 			{
-				final Clan C = CMLib.clans().fetchClan(clanID);
+				final Clan C = CMLib.clans().getClanExact(clanID);
 				if(C!=null)
 					C.bumpTrophyData(Clan.Trophy.MonthlyControlPoints, amount);
 			}
@@ -1164,9 +1164,9 @@ public class Conquerable extends Arrest
 				&&(!clanID.equals(holdingClan))
 				&&(myArea!=null))
 				{
-					for(final Enumeration e=myArea.getMetroMap();e.hasMoreElements();)
+					for(final Enumeration<Room> e=myArea.getMetroMap();e.hasMoreElements();)
 					{
-						final Room R=(Room)e.nextElement();
+						final Room R=e.nextElement();
 						for(int i=0;i<R.numInhabitants();i++)
 						{
 							final MOB M=R.fetchInhabitant(i);

@@ -2874,6 +2874,8 @@ public class CharCreation extends StdLibrary implements CharCreationLibrary
 			}
 			statstr.append("^w"+CMStrings.padRight(L("STATS TOTAL"),15)+"^N: ^w"+total+"^N/^w"+(CMProps.getIntVar(CMProps.Int.BASEMAXSTAT)*6)+"^.^N");
 			session.println(statstr.toString());
+			if((qualifyingClassListV.size()==0)&&(!CMSecurity.isDisabled(CMSecurity.DisFlag.CLASSES)))
+				qualifyingClassListV=classQualifies(mob,loginObj.theme);
 			if(!CMSecurity.isDisabled(CMSecurity.DisFlag.CLASSES)
 			&&(!mob.baseCharStats().getMyRace().classless())
 			&&(randomRoll || qualifyingClassListV.size()>0)
@@ -3414,11 +3416,11 @@ public class CharCreation extends StdLibrary implements CharCreationLibrary
 		final String startingMoney=mob.baseCharStats().getCurrentClass().getStartingMoney();
 		if((startingMoney!=null)&&(startingMoney.trim().length()>0))
 		{
-			String currency=CMLib.english().numPossibleGoldCurrency(mob,startingMoney);
+			String currency=CMLib.english().parseNumPossibleGoldCurrency(mob,startingMoney);
 			if(currency.length()==0)
 				currency=CMLib.beanCounter().getCurrency(mob);
-			final double denomination=CMLib.english().numPossibleGoldDenomination(null,currency,startingMoney);
-			final long num=CMLib.english().numPossibleGold(null,startingMoney);
+			final double denomination=CMLib.english().parseNumPossibleGoldDenomination(null,currency,startingMoney);
+			final long num=CMLib.english().parseNumPossibleGold(null,startingMoney);
 			if((num>0)&&(denomination>0.0)&&(currency!=null))
 				CMLib.beanCounter().giveSomeoneMoney(mob, currency, denomination * num);
 		}

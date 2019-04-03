@@ -294,17 +294,17 @@ public class StdPostman extends StdShopKeeper implements PostOffice
 		}
 	}
 
-	public Vector<PlayerData> getAllLocalBoxPD(final String boxName)
+	public List<PlayerData> getAllLocalBoxPD(final String boxName)
 	{
 		final List<PlayerData> V=getBoxRowPDData(boxName);
-		final Vector<PlayerData> mine=new Vector<PlayerData>();
+		final List<PlayerData> mine=new Vector<PlayerData>();
 		for(int v=0;v<V.size();v++)
 		{
 			final DatabaseEngine.PlayerData PD=V.get(v);
 			if((PD!=null)
 			&&(PD.key().startsWith(postalBranch()+";")))
 			{
-				mine.addElement(PD);
+				mine.add(PD);
 			}
 		}
 		return mine;
@@ -358,12 +358,13 @@ public class StdPostman extends StdShopKeeper implements PostOffice
 	public MailPiece parsePostalItemData(String data)
 	{
 		final MailPiece piece = new MailPiece();
+		final String origData = data;
 		for(int i=0;i<5;i++)
 		{
 			final int x=data.indexOf(';');
 			if(x<0)
 			{
-				Log.errOut("StdPostman","Man formed postal data: "+data);
+				Log.errOut("StdPostman","Malformed postal data: '"+origData+"' : '"+data+"'");
 				return null;
 			}
 			switch(i)
@@ -476,7 +477,7 @@ public class StdPostman extends StdShopKeeper implements PostOffice
 			if(M.getStartRoom()!=null)
 			{
 				final Map<String,String> allBranchBoxes=getOurOpenBoxes(toWhom);
-				final PostOffice P=CMLib.map().getPostOffice(postalChain(),M.getStartRoom().getArea().Name());
+				final PostOffice P=CMLib.map().getPostOffice(postalChain(), M.getStartRoom().getArea().Name());
 				String branch=null;
 				if(P!=null)
 				{
@@ -558,21 +559,21 @@ public class StdPostman extends StdShopKeeper implements PostOffice
 			if(proceed)
 			{
 				List<PlayerData> V=getBoxRowPDData(postalChain());
+				if(V==null)
+					V=new ArrayList<PlayerData>(0);
 				// first parse all the pending mail,
 				// and remove it from the sorter
-				final Vector<MailPiece> parsed=new Vector<MailPiece>();
-				if(V==null)
-					V=new Vector<PlayerData>();
+				final List<MailPiece> parsed=new ArrayList<MailPiece>(V.size());
 				for(int v=0;v<V.size();v++)
 				{
 					final DatabaseEngine.PlayerData PD=V.get(v);
-					parsed.addElement(parsePostalItemData(PD.xml()));
+					parsed.add(parsePostalItemData(PD.xml()));
 					CMLib.database().DBDeletePlayerData(PD.who(),PD.section(),PD.key());
 				}
 				PostOffice P=null;
 				for(int v=0;v<parsed.size();v++)
 				{
-					final MailPiece V2=parsed.elementAt(v);
+					final MailPiece V2=parsed.get(v);
 					final String toWhom=V2.to;
 					String deliveryBranch=findProperBranch(toWhom);
 					if(deliveryBranch!=null)
@@ -721,7 +722,8 @@ public class StdPostman extends StdShopKeeper implements PostOffice
 															autoGive(me,msg.source(),(Item)msg.tool());
 														}
 
-														@Override public void callBack()
+														@Override
+														public void callBack()
 														{
 															final String CODstr=this.input;
 															if((CODstr.length()==0)||(!CMath.isNumber(CODstr))||(CMath.s_double(CODstr)<=0.0))
@@ -942,7 +944,7 @@ public class StdPostman extends StdShopKeeper implements PostOffice
 				super.executeMsg(myHost,msg);
 				if(CMLib.flags().isAliveAwakeMobileUnbound(mob,true))
 				{
-					Vector<PlayerData> V=null;
+					List<PlayerData> V=null;
 					final String theName=getSenderName(msg.source(),Clan.Function.DEPOSIT_LIST,false);
 					if(isSold(ShopKeeper.DEAL_CLANPOSTMAN))
 						V=getAllLocalBoxPD(theName);
@@ -951,7 +953,7 @@ public class StdPostman extends StdShopKeeper implements PostOffice
 						V=getAllLocalBoxPD(theName);
 						if(mob.isMarriedToLiege())
 						{
-							final Vector<PlayerData> PDV=getAllLocalBoxPD(mob.getLiegeID());
+							final List<PlayerData> PDV=getAllLocalBoxPD(mob.getLiegeID());
 							if((PDV!=null)&&(PDV.size()>0))
 								V.addAll(PDV);
 						}
@@ -969,7 +971,7 @@ public class StdPostman extends StdShopKeeper implements PostOffice
 						mob.tell(str.toString());
 						for(int i=0;i<V.size();i++)
 						{
-							final DatabaseEngine.PlayerData PD=V.elementAt(i);
+							final DatabaseEngine.PlayerData PD=V.get(i);
 							final MailPiece pieces=parsePostalItemData(PD.xml());
 							final Item I=makeItem(pieces);
 							if(I==null)

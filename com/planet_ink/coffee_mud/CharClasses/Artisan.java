@@ -150,7 +150,7 @@ public class Artisan extends StdCharClass
 		CMLib.ableMapper().addCharAbilityMapping(ID(),1,"Farming",false,CMParms.parseSemicolons("Foraging(75)",true));
 		CMLib.ableMapper().addCharAbilityMapping(ID(),1,"FoodPreserving",false,CMParms.parseSemicolons("Foraging(75)",true));
 		CMLib.ableMapper().addCharAbilityMapping(ID(),1,"Shearing",false,CMParms.parseSemicolons("Foraging(75)",true));
-		CMLib.ableMapper().addCharAbilityMapping(ID(),1,"Specialization_EdgedWeapon",false,CMParms.parseSemicolons("Proficiency_EdgedWeapon(100);Drilling(75)",true));
+		CMLib.ableMapper().addCharAbilityMapping(ID(),1,"Familiarity_EdgedWeapon",false,CMParms.parseSemicolons("Familiarity_EdgedWeapon(100);Drilling(75)",true));
 		CMLib.ableMapper().addCharAbilityMapping(ID(),1,"Speculate",false,CMParms.parseSemicolons("Foraging(75);Drilling(75);Hunting(75);Fishing(75);Chopping(75);Mining(75);Digging(75)",true));
 		CMLib.ableMapper().addCharAbilityMapping(ID(),1,"Sculpting",false,CMParms.parseSemicolons("Mining(75)",true));
 
@@ -271,6 +271,21 @@ public class Artisan extends StdCharClass
 		CMLib.ableMapper().addCharAbilityMapping(ID(),1,"Thief_StrategicRetreat",false,CMParms.parseSemicolons("Skill_Autoclimb(75);Skill_Autoswim(75);Skill_Autocrawl(75)",true));
 		CMLib.ableMapper().addCharAbilityMapping(ID(),1,"Skill_ShipLore",false,CMParms.parseSemicolons("Shipwright(75)",true));
 		CMLib.ableMapper().addCharAbilityMapping(ID(),60,"LegendaryWeaponsmithing",false,CMParms.parseSemicolons("MasterWeaponsmithing(100)",true));
+	}
+
+	@Override
+	public void startCharacter(final MOB mob, final boolean isBorrowedClass, final boolean verifyOnly)
+	{
+		super.startCharacter(mob, isBorrowedClass, verifyOnly);
+		if(mob.fetchEffect("ArtisanalFocus")==null)
+		{
+			final Ability A=CMClass.getAbility("ArtisanalFocus");
+			if(A!=null)
+			{
+				A.setSavable(true);
+				mob.addNonUninvokableEffect(A);
+			}
+		}
 	}
 
 	@Override

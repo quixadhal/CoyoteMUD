@@ -44,9 +44,15 @@ public class FactionID extends StdWebMacro
 	@Override
 	public String runMacro(final HTTPRequest httpReq, final String parm, final HTTPResponse httpResp)
 	{
-		final String last=httpReq.getUrlParameter("FACTION");
+		final java.util.Map<String,String> parms=parseParms(parm);
+		String last=httpReq.getUrlParameter("FACTION");
 		if(last==null)
-			return " @break@";
+		{
+			if(parms.containsKey("FACTION"))
+				last=parms.get("FACTION");
+			if(last == null)
+				return " @break@";
+		}
 		if(last.length()>0)
 			return clearWebMacros(last);
 		return "";

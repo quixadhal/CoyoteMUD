@@ -67,8 +67,7 @@ public class Paladin_Purity extends PaladinSkill
 	{
 		if(!super.okMessage(myHost,msg))
 			return false;
-		if((affected==null)||(!(CMLib.flags().isGood(affected))))
-			return true;
+
 		if(!(affected instanceof MOB))
 			return true;
 
@@ -78,9 +77,12 @@ public class Paladin_Purity extends PaladinSkill
 		&&(!msg.source().isMine(msg.tool()))
 		&&(msg.value()<0)
 		&&(msg.othersMessage()!=null)
-		&&(msg.othersMessage().equalsIgnoreCase(CMLib.factions().AlignID())))
+		&&(msg.othersMessage().equalsIgnoreCase(CMLib.factions().getAlignmentID())
+			||msg.othersMessage().equalsIgnoreCase(CMLib.factions().getInclinationID()))
+		&&(appropriateToMyFactions(invoker))
+		&&(proficiencyCheck(msg.source(), 0, false)))
 		{
-			msg.source().location().show(msg.source(),null,CMMsg.MSG_OK_VISUAL,L("<S-YOUPOSS> purity protects <S-HIM-HER> from the evil influence."));
+			msg.source().location().show(msg.source(),null,CMMsg.MSG_OK_VISUAL,L("<S-YOUPOSS> purity protects <S-HIM-HER> from wicked influence."));
 			return false;
 		}
 		return true;

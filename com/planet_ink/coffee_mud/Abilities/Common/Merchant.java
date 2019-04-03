@@ -544,7 +544,6 @@ public class Merchant extends CommonSkill implements ShopKeeper
 				if((msg.tool() instanceof Physical)
 				&&(getShop().doIHaveThisInStock(msg.tool().Name(),mob)))
 				{
-
 					CMLib.commands().postSay(merchantM,msg.source(),L("Interested in @x1? Here is some information for you:\n\rLevel @x2\n\rDescription: @x3",msg.tool().name(),""+((Physical)msg.tool()).phyStats().level(),msg.tool().description()),true,false);
 				}
 				break;
@@ -683,11 +682,11 @@ public class Merchant extends CommonSkill implements ShopKeeper
 			}
 			else
 			{
-				final long numberCoins=CMLib.english().numPossibleGold(mob,s);
+				final long numberCoins=CMLib.english().parseNumPossibleGold(mob,s);
 				if(numberCoins>0)
 				{
-					final String currency=CMLib.english().numPossibleGoldCurrency(mob,s);
-					final double denom=CMLib.english().numPossibleGoldDenomination(mob,currency,s);
+					final String currency=CMLib.english().parseNumPossibleGoldCurrency(mob,s);
+					final double denom=CMLib.english().parseNumPossibleGoldDenomination(mob,currency,s);
 					if(denom>0.0)
 					{
 						val=CMath.mul(numberCoins,denom);

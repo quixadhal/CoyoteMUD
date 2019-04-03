@@ -44,26 +44,28 @@ public class Factions extends StdLibrary implements FactionManager
 		return "Factions";
 	}
 
-	public SHashtable<String,Faction> factionSet = new SHashtable<String,Faction>();
-	public SHashtable<String,FRange> hashedFactionRanges=new SHashtable<String,FRange>();
+	public SHashtable<String, Faction>		factionMap			= new SHashtable<String, Faction>();
+	public SHashtable<String, FRange>		hashedFactionRanges	= new SHashtable<String, FRange>();
+	public Map<Faction.Align, List<FRange>>	hashedFactionAligns	= new SHashtable<Faction.Align, List<FRange>>();
 
 	@Override
 	public Enumeration<Faction> factions()
 	{
-		return factionSet.elements();
+		return factionMap.elements();
 	}
 
 	@Override
 	public int numFactions()
 	{
-		return factionSet.size();
+		return factionMap.size();
 	}
 
 	@Override
 	public void clearFactions()
 	{
-		factionSet.clear();
+		factionMap.clear();
 		hashedFactionRanges.clear();
+		hashedFactionAligns.clear();
 	}
 
 	@Override
@@ -148,18 +150,24 @@ public class Factions extends StdLibrary implements FactionManager
 		for(final Enumeration<FRange> e=F.ranges();e.hasMoreElements();)
 		{
 			final Faction.FRange FR=e.nextElement();
-			final String CodeName=(FR.codeName().length()>0)?FR.codeName().toUpperCase():FR.name().toUpperCase();
-			if(!hashedFactionRanges.containsKey(CodeName))
-				hashedFactionRanges.put(CodeName,FR);
-			final String SimpleUniqueCodeName = F.name().toUpperCase()+"."+FR.name().toUpperCase();
-			if(!hashedFactionRanges.containsKey(SimpleUniqueCodeName))
-				hashedFactionRanges.put(SimpleUniqueCodeName,FR);
-			final String UniqueCodeName = SimpleUniqueCodeName.replace(' ','_');
-			if(!hashedFactionRanges.containsKey(UniqueCodeName))
-				hashedFactionRanges.put(UniqueCodeName,FR);
-			final String SimpleUniqueIDName = F.factionID().toUpperCase()+"."+FR.name().toUpperCase();
-			if(!hashedFactionRanges.containsKey(SimpleUniqueIDName))
-				hashedFactionRanges.put(SimpleUniqueIDName,FR);
+			final String codeName=(FR.codeName().length()>0)?FR.codeName().toUpperCase():FR.name().toUpperCase();
+			if(!hashedFactionRanges.containsKey(codeName))
+				hashedFactionRanges.put(codeName,FR);
+			final String simpleUniqueCodeName = F.name().toUpperCase()+"."+FR.name().toUpperCase();
+			if(!hashedFactionRanges.containsKey(simpleUniqueCodeName))
+				hashedFactionRanges.put(simpleUniqueCodeName,FR);
+			final String uniqueCodeName = simpleUniqueCodeName.replace(' ','_');
+			if(!hashedFactionRanges.containsKey(uniqueCodeName))
+				hashedFactionRanges.put(uniqueCodeName,FR);
+			final String simpleUniqueIDName = F.factionID().toUpperCase()+"."+FR.name().toUpperCase();
+			if(!hashedFactionRanges.containsKey(simpleUniqueIDName))
+				hashedFactionRanges.put(simpleUniqueIDName,FR);
+			if(FR.alignEquiv() != null)
+			{
+				if(!hashedFactionAligns.containsKey(FR.alignEquiv()))
+					hashedFactionAligns.put(FR.alignEquiv(), new ArrayList<FRange>());
+				hashedFactionAligns.get(FR.alignEquiv()).add(FR);
+			}
 		}
 		return addFaction(F) ? F : null;
 	}
@@ -170,7 +178,7 @@ public class Factions extends StdLibrary implements FactionManager
 		if(F!=null)
 		{
 			F.disable(CMSecurity.isFactionDisabled(F.factionID().toUpperCase().trim()));
-			factionSet.put(F.factionID().toUpperCase().trim(),F);
+			factionMap.put(F.factionID().toUpperCase().trim(),F);
 			return !F.isDisabled();
 		}
 		return false;
@@ -200,12 +208,50 @@ public class Factions extends StdLibrary implements FactionManager
 	}
 
 	@Override
+	public boolean isFactionID(String key)
+	{
+		if(key==null)
+			return false;
+		key=key.toUpperCase().trim();
+		if(factionMap.containsKey(key))
+			return true;
+		final CMFile f=new CMFile(Resources.makeFileResourceName(makeFactionFilename(key)),null,CMFile.FLAG_LOGERRORS);
+		if(f.exists())
+			return getFaction(key)!=null;
+		return false;
+	}
+
+	@Override
+	public boolean isFactionLoaded(String key)
+	{
+		if(key==null)
+			return false;
+		key=key.toUpperCase().trim();
+		if(factionMap.containsKey(key))
+			return true;
+		if((!key.endsWith(".INI"))
+		&&(factionMap.containsKey(key+".INI")))
+			return true;
+		return false;
+	}
+
+	@Override
+	public boolean isAlignmentLoaded(final Faction.Align align)
+	{
+		if(align==null)
+			return false;
+		return hashedFactionAligns.containsKey(align)
+				&& (hashedFactionAligns.get(align).size()>0);
+	}
+
+	@Override
 	public Faction getFaction(final String factionID)
 	{
 		if(factionID==null)
 			return null;
-		Faction F=factionSet.get(factionID.toUpperCase());
-		if((F==null)&&(!factionID.toLowerCase().endsWith(".ini")))
+		Faction F=factionMap.get(factionID.toUpperCase());
+		if((F==null)
+		&&(!factionID.toLowerCase().endsWith(".ini")))
 		{
 			F=getFaction(factionID+".ini");
 		}
@@ -215,17 +261,22 @@ public class Factions extends StdLibrary implements FactionManager
 				return null;
 			if(!F.amDestroyed())
 				return F;
-			factionSet.remove(F.factionID().toUpperCase());
+			factionMap.remove(F.factionID().toUpperCase());
 			Resources.removeResource(F.factionID());
 			return null;
 		}
+		if(CMSecurity.isFactionDisabled(factionID))
+			return null;
 		final CMFile f=new CMFile(Resources.makeFileResourceName(makeFactionFilename(factionID)),null,CMFile.FLAG_LOGERRORS);
 		if(!f.exists())
 			return null;
 		final StringBuffer buf=f.text();
 		if((buf!=null)&&(buf.length()>0))
 		{
-			return buildFactionFromXML(buf, factionID);
+			final Faction newF=buildFactionFromXML(buf, factionID);
+			if(newF != null)
+				factionMap.put(factionID.toUpperCase(), newF);
+			return newF;
 		}
 		return null;
 	}
@@ -241,7 +292,7 @@ public class Factions extends StdLibrary implements FactionManager
 				final Faction F=FR.getFaction();
 				if(!F.amDestroyed())
 					return F;
-				factionSet.remove(F.factionID().toUpperCase());
+				factionMap.remove(F.factionID().toUpperCase());
 				Resources.removeResource(F.factionID());
 				return null;
 			}
@@ -253,14 +304,14 @@ public class Factions extends StdLibrary implements FactionManager
 	public Faction getFactionByName(final String factionNamed)
 	{
 		Faction F;
-		for(final Enumeration<String> e=factionSet.keys();e.hasMoreElements();)
+		for(final Enumeration<String> e=factionMap.keys();e.hasMoreElements();)
 		{
-			F=factionSet.get(e.nextElement());
+			F=factionMap.get(e.nextElement());
 			if(F.name().equalsIgnoreCase(factionNamed))
 			{
 				if(!F.amDestroyed())
 					return F;
-				factionSet.remove(F.factionID().toUpperCase());
+				factionMap.remove(F.factionID().toUpperCase());
 				Resources.removeResource(F.factionID());
 				return null;
 			}
@@ -274,7 +325,7 @@ public class Factions extends StdLibrary implements FactionManager
 		Faction F;
 		if(factionID==null)
 		{
-			for(final Enumeration<Faction> e=factionSet.elements();e.hasMoreElements();)
+			for(final Enumeration<Faction> e=factionMap.elements();e.hasMoreElements();)
 			{
 				F=e.nextElement();
 				if(F!=null)
@@ -288,7 +339,7 @@ public class Factions extends StdLibrary implements FactionManager
 		if(F==null)
 			return false;
 		Resources.removeResource(F.factionID());
-		factionSet.remove(F.factionID().toUpperCase());
+		factionMap.remove(F.factionID().toUpperCase());
 		return true;
 	}
 
@@ -300,7 +351,7 @@ public class Factions extends StdLibrary implements FactionManager
 		msg.append("+--------------------------------+-----------------------------------------+\n\r");
 		msg.append(L("| ^HFaction Name^N                   | ^HFaction INI Source File (Faction ID)^N    |\n\r"));
 		msg.append("+--------------------------------+-----------------------------------------+\n\r");
-		final XVector<Faction> sorted = new XVector<Faction>(factionSet.elements());
+		final XVector<Faction> sorted = new XVector<Faction>(factionMap.elements());
 		Collections.sort(sorted,new Comparator<Faction>()
 		{
 			@Override
@@ -427,22 +478,28 @@ public class Factions extends StdLibrary implements FactionManager
 	}
 
 	@Override
-	public String AlignID()
+	public String getAlignmentID()
 	{
 		return "alignment.ini";
 	}
 
 	@Override
+	public String getInclinationID()
+	{
+		return "inclination.ini";
+	}
+
+	@Override
 	public void setAlignment(final MOB mob, final Faction.Align newAlignment)
 	{
-		if(getFaction(AlignID())!=null)
-			mob.addFaction(AlignID(),getAlignMedianFacValue(newAlignment));
+		if(factionMap.containsKey(this.getAlignmentID().toUpperCase()))
+			mob.addFaction(getAlignmentID(),getAlignMedianFacValue(newAlignment));
 	}
 
 	@Override
 	public void setAlignmentOldRange(final MOB mob, final int oldRange)
 	{
-		if(getFaction(AlignID())!=null)
+		if(factionMap.containsKey(this.getAlignmentID().toUpperCase()))
 		{
 			if(oldRange>=650)
 				setAlignment(mob,Faction.Align.GOOD);
@@ -503,7 +560,7 @@ public class Factions extends StdLibrary implements FactionManager
 			return null;
 		}
 		StringBuffer buf = rebuildFactionProperties(templateF);
-		factionSet.remove(templateF.factionID().toUpperCase().trim());
+		factionMap.remove(templateF.factionID().toUpperCase().trim());
 		String bufStr = buf.toString();
 		bufStr = CMStrings.replaceAll(bufStr,"<CODE>",code);
 		bufStr = CMStrings.replaceAll(bufStr,"<NAME>",Name);
@@ -665,7 +722,7 @@ public class Factions extends StdLibrary implements FactionManager
 			final Vector<Faction.FactionChangeEvent> outSiders=new Vector<Faction.FactionChangeEvent>();
 			final Vector<Faction.FactionChangeEvent> timers=new Vector<Faction.FactionChangeEvent>();
 			final HashSet<Faction> factionsDone=new HashSet<Faction>();
-			for(final Enumeration<Faction> e=factionSet.elements();e.hasMoreElements();)
+			for(final Enumeration<Faction> e=factionMap.elements();e.hasMoreElements();)
 			{
 				F=e.nextElement();
 				if((F.getInternalFlags()&Faction.IFLAG_CUSTOMTICK)==0)
@@ -721,10 +778,12 @@ public class Factions extends StdLibrary implements FactionManager
 	@Override
 	public int getAlignPurity(final int faction, final Faction.Align eq)
 	{
+		if(!factionMap.containsKey(this.getAlignmentID().toUpperCase()))
+			return 0;
 		int bottom=Integer.MAX_VALUE;
 		int top=Integer.MIN_VALUE;
-		final int pct=getPercent(AlignID(),faction);
-		final Enumeration<FRange> e = getRanges(AlignID());
+		final int pct=getPercent(getAlignmentID(),faction);
+		final Enumeration<FRange> e = getRanges(getAlignmentID());
 		if(e!=null)
 		for(;e.hasMoreElements();)
 		{
@@ -740,11 +799,45 @@ public class Factions extends StdLibrary implements FactionManager
 		switch(eq)
 		{
 			case GOOD:
-				return Math.abs(pct - getPercent(AlignID(),top));
+				return Math.abs(pct - getPercent(getAlignmentID(),top));
 			case EVIL:
-				return Math.abs(getPercent(AlignID(),bottom) - pct);
+				return Math.abs(getPercent(getAlignmentID(),bottom) - pct);
 			case NEUTRAL:
-				return Math.abs(getPercent(AlignID(),(int)Math.round(CMath.div((top+bottom),2))) - pct);
+				return Math.abs(getPercent(getAlignmentID(),(int)Math.round(CMath.div((top+bottom),2))) - pct);
+			default:
+				return 0;
+		}
+	}
+
+	@Override
+	public int getInclinationPurity(final int faction, final Faction.Align eq)
+	{
+		if(!factionMap.containsKey(this.getInclinationID().toUpperCase()))
+			return 0;
+		int bottom=Integer.MAX_VALUE;
+		int top=Integer.MIN_VALUE;
+		final int pct=getPercent(getInclinationID(),faction);
+		final Enumeration<FRange> e = getRanges(getInclinationID());
+		if(e!=null)
+		for(;e.hasMoreElements();)
+		{
+			final Faction.FRange R=e.nextElement();
+			if(R.alignEquiv()==eq)
+			{
+				if(R.low()<bottom)
+					bottom=R.low();
+				if(R.high()>top)
+					top=R.high();
+			}
+		}
+		switch(eq)
+		{
+			case LAWFUL:
+				return Math.abs(pct - getPercent(getInclinationID(),top));
+			case CHAOTIC:
+				return Math.abs(getPercent(getInclinationID(),bottom) - pct);
+			case INDIFF:
+				return Math.abs(getPercent(getInclinationID(),(int)Math.round(CMath.div((top+bottom),2))) - pct);
 			default:
 				return 0;
 		}
@@ -754,9 +847,11 @@ public class Factions extends StdLibrary implements FactionManager
 	@Override
 	public int getAlignMedianFacValue(final Faction.Align eq)
 	{
+		if(!factionMap.containsKey(this.getAlignmentID().toUpperCase()))
+			return 0;
 		int bottom=Integer.MAX_VALUE;
 		int top=Integer.MIN_VALUE;
-		final Enumeration<FRange> e = getRanges(AlignID());
+		final Enumeration<FRange> e = getRanges(getAlignmentID());
 		if(e==null)
 			return 0;
 		for(;e.hasMoreElements();)

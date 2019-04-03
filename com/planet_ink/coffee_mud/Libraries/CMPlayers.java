@@ -785,13 +785,17 @@ public class CMPlayers extends StdLibrary implements PlayerLibrary
 		if(pStats != null)
 			pStats.getExtItems().delAllItems(true);
 		final List<String> channels=CMLib.channels().getFlaggedChannelNames(ChannelsLibrary.ChannelFlag.PLAYERPURGES);
-		for(int i=0;i<channels.size();i++)
+		if(channels.size()>0)
 		{
 			String name=deadMOB.Name();
 			if((pStats != null)
 			&&(pStats.getAccount()!=null))
 				name+=" ("+pStats.getAccount().getAccountName()+")";
-			CMLib.commands().postChannel(channels.get(i),deadMOB.clans(),CMLib.lang().fullSessionTranslation("@x1 has just been deleted.",name),true);
+			final String msgStr = CMLib.lang().fullSessionTranslation("@x1 has just been deleted.",name);
+			for(int i=0;i<channels.size();i++)
+			{
+				CMLib.commands().postChannel(channels.get(i),deadMOB.clans(),msgStr,true);
+			}
 		}
 		CMLib.coffeeTables().bump(deadMOB,CoffeeTableRow.STAT_PURGES);
 
@@ -1404,7 +1408,7 @@ public class CMPlayers extends StdLibrary implements PlayerLibrary
 					{
 						obliteratePlayer(M,true, true);
 						M.destroy();
-						Log.sysOut(serviceClient.getName(),"AutoPurged user "+name+". Last logged in "+(CMLib.time().date2String(userLastLoginDateTime))+".");
+						Log.sysOut(serviceClient.getName(),"AutoPurged user "+name+" ("+M.basePhyStats().level()+"). Last logged in "+(CMLib.time().date2String(userLastLoginDateTime))+".");
 					}
 				}
 			}
@@ -1533,7 +1537,7 @@ public class CMPlayers extends StdLibrary implements PlayerLibrary
 		if(serviceClient==null)
 		{
 			name="THPlayers"+Thread.currentThread().getThreadGroup().getName().charAt(0);
-			serviceClient=CMLib.threads().startTickDown(this, Tickable.TICKID_SUPPORT|Tickable.TICKID_SOLITARYMASK, MudHost.TIME_SAVETHREAD_SLEEP, 1);
+			serviceClient=CMLib.threads().startTickDown(this, Tickable.TICKID_SUPPORT|Tickable.TICKID_SOLITARYMASK|Tickable.TICKID_LONGERMASK, MudHost.TIME_SAVETHREAD_SLEEP, 1);
 			resetAllPrideStats();
 		}
 		return true;

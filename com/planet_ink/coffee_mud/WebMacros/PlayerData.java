@@ -213,15 +213,15 @@ public class PlayerData extends StdWebMacro
 			break;
 		}
 		case ALIGNMENTNAME:
-			str.append(M.fetchFaction(CMLib.factions().AlignID()) + ", ");
+			str.append(M.fetchFaction(CMLib.factions().getAlignmentID()) + ", ");
 			break;
 		case ALIGNMENTSTRING:
 		{
-			final Faction.FRange FR=CMLib.factions().getRange(CMLib.factions().AlignID(),M.fetchFaction(CMLib.factions().AlignID()));
+			final Faction.FRange FR=CMLib.factions().getRange(CMLib.factions().getAlignmentID(),M.fetchFaction(CMLib.factions().getAlignmentID()));
 			if(FR!=null)
 				str.append(FR.name()+", ");
 			else
-				str.append(M.fetchFaction(CMLib.factions().AlignID()));
+				str.append(M.fetchFaction(CMLib.factions().getAlignmentID()));
 			break;
 		}
 		case WIMP:
@@ -603,10 +603,10 @@ public class PlayerData extends StdWebMacro
 			{
 				String old=httpReq.getUrlParameter("ALIGNMENT");
 				if((firstTime)||(old.length()==0))
-					old=""+M.fetchFaction(CMLib.factions().AlignID());
-				if(CMLib.factions().getFaction(CMLib.factions().AlignID())!=null)
+					old=""+M.fetchFaction(CMLib.factions().getAlignmentID());
+				if(CMLib.factions().getFaction(CMLib.factions().getAlignmentID())!=null)
 				{
-					for(final Faction.Align v : Faction.Align.values())
+					for(final Faction.Align v : Faction.Align.alignAligns)
 					{
 						if(v!=Faction.Align.INDIFF)
 						{
@@ -649,6 +649,7 @@ public class PlayerData extends StdWebMacro
 				if(parms.containsKey("READONLY"))
 					str.append(CMParms.toListString(set));
 				else
+				if(set != null)
 				{
 					for (final PlayerStats.PlayerFlag element : PlayerStats.PlayerFlag.values())
 					{

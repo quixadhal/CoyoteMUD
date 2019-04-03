@@ -527,7 +527,7 @@ public class WeatherAffects extends PuddleMaker
 					if(frostBiteChance>0)
 						frostBiteChance=frostBiteChance+(int)Math.round(CMath.mul(frostBiteChance,0.25));
 				}
-				final int save=(M.charStats().getSave(CharStats.STAT_SAVE_COLD)+M.charStats().getSave(CharStats.STAT_SAVE_WATER))/2;
+				final int save=M.charStats().getSave(CharStats.STAT_SAVE_COLD)+M.charStats().getSave(CharStats.STAT_SAVE_WATER);
 				if((CMLib.dice().rollPercentage()<(coldChance-save))
 				&&((C.weatherType(M.location())!=Climate.WEATHER_CLEAR)))
 				{

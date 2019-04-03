@@ -159,11 +159,72 @@ public class Prop_Artifact extends Property
 		super.unInvoke();
 	}
 
+	protected String identifyStr(final Environmental myHost)
+	{
+		final String destroyed = ((myHost != null)?(myHost.amDestroyed()?" (Host Destroyed) ":""):"");
+		if(!(myHost instanceof Item))
+		{
+			if(myHost == null)
+				return "null";
+			return destroyed+" ("+myHost.ID()+": "+CMLib.map().getApproximateExtendedRoomID(CMLib.map().roomLocation(myHost))+")";
+		}
+		else
+		{
+			final Item I=(Item)myHost;
+			try
+			{
+				if(I.owner()==null)
+					return destroyed+" (null owner)";
+				else
+				{
+					final String destroyed2 = I.owner().amDestroyed()?" (Owner Destroyed) ":"";
+					return destroyed+I.owner().name()+" ("+I.owner().ID()+": "+CMLib.map().getApproximateExtendedRoomID(CMLib.map().roomLocation(I.owner()))+")"+destroyed2;
+				}
+			}
+			finally
+			{
+				this.destroyArtifact(I);
+			}
+		}
+	}
+
 	@Override
 	public boolean okMessage(final Environmental myHost, final CMMsg msg)
 	{
 		if(!(affected instanceof Item))
-			return false;
+		{
+			if(affected == null)
+				Log.errOut("Prop_Artifact had null affected link-back on "+myHost.Name()+", with owner: "+identifyStr(myHost));
+			else
+				Log.errOut("Prop_Artifact had affected "+affected.name()+" link-back on "+myHost.Name()+", with owner: "+identifyStr(myHost));
+			return true;
+		}
+		if((msg.target()==affected)
+		&&(msg.targetMinor()==CMMsg.TYP_SPEAK)
+		&&(msg.sourceMessage()!=null))
+		{
+			final String say=CMStrings.getSayFromMessage(msg.sourceMessage());
+			if((say != null)
+			&&(say.toLowerCase().indexOf("reset prop_artifact")>=0)
+			&&(CMSecurity.isAllowed(msg.source(), msg.source().location(), CMSecurity.SecFlag.CMDITEMS)))
+			{
+				final String name=affected.Name();
+				final List<String> keys=new XVector<String>(Prop_Artifact.registeredArtifacts.keySet());
+				for(final String key : keys)
+				{
+					final Item I=Prop_Artifact.registeredArtifacts.get(key);
+					if((I!=null)
+					&&(I.Name().equals(name)))
+					{
+						Prop_Artifact.registeredArtifacts.remove(key);
+						msg.source().tell("Removed: "+key);
+					}
+				}
+			}
+			this.destroyArtifact((Item)this.affected);
+			return true;
+		}
+		else
 		if((msg.targetMinor()==CMMsg.TYP_EXPIRE)
 		&&(msg.target() instanceof Room)
 		&&(((Room)msg.target()).isContent((Item)affected)))
@@ -340,7 +401,6 @@ public class Prop_Artifact extends Property
 				final List<PlayerData> itemSet=CMLib.database().DBReadPlayerData(getItemID(),"ARTIFACTS","ARTIFACTS/"+getItemID());
 				if((itemSet!=null)&&(itemSet.size()>0))
 				{
-					// does it already exist?
 					if(registeredArtifacts.containsKey(getItemID()))
 						registeredArtifacts.remove(getItemID());
 					final String data=itemSet.get(0).xml();
@@ -493,7 +553,9 @@ public class Prop_Artifact extends Property
 		{
 			if(nolocate)
 				affectableStats.setSensesMask(affectableStats.sensesMask()|PhyStats.SENSE_UNLOCATABLE);
-			affectableStats.setSensesMask(affectableStats.sensesMask()|PhyStats.SENSE_UNDESTROYABLE);
+			if((((Item)affected).owner() != null)
+			&&(((Item)affected).owner().isContent((Item)affected)))
+				affectableStats.setSensesMask(affectableStats.sensesMask()|PhyStats.SENSE_UNDESTROYABLE);
 			if(((Item)affected).subjectToWearAndTear())
 				((Item)affected).setUsesRemaining(100);
 			((Item)affected).setExpirationDate(0);

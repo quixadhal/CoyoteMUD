@@ -61,7 +61,6 @@ import java.util.*;
  * different "muds" according to the thread group the calling thread belongs to.
  * @author Bo Zimmerman
  */
-@SuppressWarnings({"unchecked","rawtypes"})
 public class CMSecurity
 {
 	public static final int JSCRIPT__NO_APPROVAL = 0;
@@ -140,6 +139,18 @@ public class CMSecurity
 	private static final CMSecurity i()
 	{
 		return secs[Thread.currentThread().getThreadGroup().getName().charAt(0)];
+	}
+
+	/**
+	 * Forces the current thread group to use the security group object associated with
+	 * the given thread group id
+	 * @param c the thread group
+	 */
+	public static void shareWith(final char c)
+	{
+		if(secs[c]==null)
+			secs[c] = new CMSecurity();
+		secs[Thread.currentThread().getThreadGroup().getName().charAt(0)] = secs[c];
 	}
 
 	/**
@@ -491,9 +502,11 @@ public class CMSecurity
 		||((mob.soulMate()!=null)&&(!mob.soulMate().isAttributeSet(MOB.Attrib.SYSOPMSGS))))
 			return DIRSV;
 		final boolean subop=((room!=null)&&(room.getArea()!=null)&&(room.getArea().amISubOp(mob.Name())));
+		@SuppressWarnings("rawtypes")
 		final Iterator[] allGroups={mob.playerStats().getSecurityFlags().paths(),
 				 mob.baseCharStats().getCurrentClass().getSecurityFlags(mob.baseCharStats().getCurrentClassLevel()).paths()};
-		for(final Iterator<SecPath> g=new MultiIterator<SecPath>(allGroups);g.hasNext();)
+		for(@SuppressWarnings("unchecked")
+		final Iterator<SecPath> g=new MultiIterator<SecPath>(allGroups);g.hasNext();)
 		{
 			final SecPath p=g.next();
 			if((!p.isAreaOnly)||(subop))
@@ -565,9 +578,11 @@ public class CMSecurity
 		||((mob.soulMate()!=null)&&(!mob.soulMate().isAttributeSet(MOB.Attrib.SYSOPMSGS))))
 			return false;
 		final boolean subop=((room!=null)&&(room.getArea()!=null)&&(room.getArea().amISubOp(mob.Name())));
+		@SuppressWarnings("rawtypes")
 		final Iterator[] allGroups={mob.playerStats().getSecurityFlags().paths(),
 				 mob.baseCharStats().getCurrentClass().getSecurityFlags(mob.baseCharStats().getCurrentClassLevel()).paths()};
-		for(final Iterator<SecPath> g=new MultiIterator<SecPath>(allGroups);g.hasNext();)
+		for(@SuppressWarnings("unchecked")
+		final Iterator<SecPath> g=new MultiIterator<SecPath>(allGroups);g.hasNext();)
 		{
 			final SecPath p=g.next();
 			if((!p.isAreaOnly)||(subop))
@@ -584,6 +599,7 @@ public class CMSecurity
 	 * @param path the path of the file to check permissions on
 	 * @return true if the user/player has permission to see and CD into the given directory, false otherwise.
 	 */
+	@SuppressWarnings("unchecked")
 	public static final boolean canTraverseDir(final MOB mob, final Room room, String path)
 	{
 		if(isASysOp(mob))
@@ -598,6 +614,7 @@ public class CMSecurity
 			path="";
 		final String pathSlash=path+"/";
 		final boolean subop=((room!=null)&&(room.getArea()!=null)&&(room.getArea().amISubOp(mob.Name())));
+		@SuppressWarnings("rawtypes")
 		final Iterator[] allGroups={mob.playerStats().getSecurityFlags().paths(),
 				 mob.baseCharStats().getCurrentClass().getSecurityFlags(mob.baseCharStats().getCurrentClassLevel()).paths()};
 		for(final Iterator<SecPath> g=new MultiIterator<SecPath>(allGroups);g.hasNext();)
@@ -637,12 +654,14 @@ public class CMSecurity
 		if(path.equals("/")||path.equals("."))
 			path="";
 		final boolean subop=((room!=null)&&(room.getArea()!=null)&&(room.getArea().amISubOp(mob.Name())));
+		@SuppressWarnings("rawtypes")
 		final Iterator[] allGroups=
 		{
 			mob.playerStats().getSecurityFlags().paths(),
 			mob.baseCharStats().getCurrentClass().getSecurityFlags(mob.baseCharStats().getCurrentClassLevel()).paths()
 		};
-		for(final Iterator<SecPath> g=new MultiIterator<SecPath>(allGroups);g.hasNext();)
+		for(@SuppressWarnings("unchecked")
+		final Iterator<SecPath> g=new MultiIterator<SecPath>(allGroups);g.hasNext();)
 		{
 			final SecPath p=g.next();
 			if(((!p.isAreaOnly)||(subop))
@@ -899,6 +918,7 @@ public class CMSecurity
 	 */
 	public static final Map<Long,String> getApprovedJScriptTable()
 	{
+		@SuppressWarnings("unchecked")
 		Map<Long,String> approved=(Map<Long, String>)Resources.getResource("APPROVEDJSCRIPTS");
 		if(approved==null)
 		{
@@ -1122,9 +1142,9 @@ public class CMSecurity
 	 * meaning all the things returned are enabled, but normally disabled presently.
 	 * @return an enumeration of all enable flags that are currently set
 	 */
-	public static Enumeration<Object> getEnablesEnum()
+	public static Enumeration<String> getEnablesEnum()
 	{
-		final MultiEnumeration m = new MultiEnumeration(getEnabledSpecialsEnum(true));
+		final MultiEnumeration<String> m = new MultiEnumeration<String>(getEnabledSpecialsEnum(true));
 		return m;
 	}
 
@@ -1335,6 +1355,7 @@ public class CMSecurity
 	 * meaning all the things returned are disabled presently.
 	 * @return an enumeration of all flags that are currently set
 	 */
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public static Enumeration<Object> getDisablesEnum()
 	{
 		final Enumeration<DisFlag> e=new IteratorEnumeration<DisFlag>(instance().disVars.iterator());

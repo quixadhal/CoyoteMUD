@@ -62,6 +62,8 @@ public class ListCmd extends StdCommand
 		return access;
 	}
 
+	protected boolean helpChecked = false;
+
 	private enum WikiFlag
 	{
 		NO,
@@ -456,6 +458,8 @@ public class ListCmd extends StdCommand
 
 		try
 		{
+			final int col1=CMLib.lister().fixColWidth(25.0,mob.session());
+			final int roomNameCol=CMLib.lister().fixColWidth(20.0,mob.session());
 			for(;r.hasMoreElements();)
 			{
 				R=r.nextElement();
@@ -469,8 +473,8 @@ public class ListCmd extends StdCommand
 						||CMLib.english().containsString(R.displayText(),rest)
 						||CMLib.english().containsString(R.description(),rest))
 						{
-							lines.append("^!"+CMStrings.padRight("*",17)+"^?| ");
-							lines.append(R.displayText(mob));
+							lines.append("^!"+CMStrings.padRight("*",col1)+"^?| ");
+							lines.append(CMStrings.limit(R.displayText(mob),roomNameCol));
 							lines.append("^.^N (^<LSTROOMID^>"+CMLib.map().getDescriptiveExtendedRoomID(R)+"^</LSTROOMID^>)");
 							lines.append("\n\r");
 						}
@@ -486,7 +490,7 @@ public class ListCmd extends StdCommand
 								||((E.doorName().length()>0)&& CMLib.english().containsString(E.doorName(),rest))
 								||(CMLib.english().containsString(E.viewableText(mob,R).toString(),rest))))
 							{
-								lines.append("^!"+CMStrings.padRight(CMLib.directions().getDirectionName(d),17)+"^N| ");
+								lines.append("^!"+CMStrings.padRight(CMLib.directions().getDirectionName(d),col1)+"^N| ");
 								lines.append("^N^. (^<LSTROOMID^>"+CMLib.map().getDescriptiveExtendedRoomID(R)+"^</LSTROOMID^>)");
 								lines.append("\n\r");
 							}
@@ -505,7 +509,7 @@ public class ListCmd extends StdCommand
 								||(CMLib.english().containsString(E.displayText(),rest))
 								||(CMLib.english().containsString(E.description(),rest)))
 								{
-									lines.append("^!"+CMStrings.padRight(cataMark(E)+E.name(),17)+"^N| ");
+									lines.append("^!"+CMStrings.padRight(cataMark(E)+E.name(),col1)+"^N| ");
 									lines.append("SHOP: "+cataMark(R)+R.name(mob)+"^N");
 									lines.append(" (^<LSTROOMID^>"+CMLib.map().getDescriptiveExtendedRoomID(R)+"^</LSTROOMID^>)");
 									if(shopOnly)
@@ -524,8 +528,8 @@ public class ListCmd extends StdCommand
 							{
 								if(CMLib.masking().maskCheck(compiledZapperMask,I,true))
 								{
-									lines.append("^!"+CMStrings.padRight(cataMark(I)+I.name(mob),17)+"^N| ");
-									lines.append(R.displayText(mob));
+									lines.append("^!"+CMStrings.padRight(cataMark(I)+I.name(mob),col1)+"^N| ");
+									lines.append(CMStrings.limit(R.displayText(mob),roomNameCol));
 									lines.append("^.^N (^<LSTROOMID^>"+CMLib.map().getDescriptiveExtendedRoomID(R)+"^</LSTROOMID^>)");
 									lines.append("\n\r");
 								}
@@ -535,8 +539,8 @@ public class ListCmd extends StdCommand
 							{
 								if(CMLib.masking().maskCheck(rest,I,true))
 								{
-									lines.append("^!"+CMStrings.padRight(cataMark(I)+I.name(mob),17)+"^N| ");
-									lines.append(R.displayText(mob));
+									lines.append("^!"+CMStrings.padRight(cataMark(I)+I.name(mob),col1)+"^N| ");
+									lines.append(CMStrings.limit(R.displayText(mob),roomNameCol));
 									lines.append("^.^N (^<LSTROOMID^>"+CMLib.map().getDescriptiveExtendedRoomID(R)+"^</LSTROOMID^>)");
 									lines.append("\n\r");
 								}
@@ -547,8 +551,8 @@ public class ListCmd extends StdCommand
 							||(CMLib.english().containsString(I.displayText(),rest))
 							||(CMLib.english().containsString(I.description(),rest)))
 							{
-								lines.append("^!"+CMStrings.padRight(cataMark(I)+I.name(mob),17)+"^N| ");
-								lines.append(R.displayText(mob));
+								lines.append("^!"+CMStrings.padRight(cataMark(I)+I.name(mob),col1)+"^N| ");
+								lines.append(CMStrings.limit(R.displayText(mob),roomNameCol));
 								lines.append("^.^N (^<LSTROOMID^>"+CMLib.map().getDescriptiveExtendedRoomID(R)+"^</LSTROOMID^>)");
 								lines.append("\n\r");
 							}
@@ -565,8 +569,8 @@ public class ListCmd extends StdCommand
 								{
 									if(CMLib.masking().maskCheck(compiledZapperMask,M,true))
 									{
-										lines.append("^!"+CMStrings.padRight(cataMark(M)+M.name(mob),17)+"^N| ");
-										lines.append(R.displayText(mob));
+										lines.append("^!"+CMStrings.padRight(cataMark(M)+M.name(mob),col1)+"^N| ");
+										lines.append(CMStrings.limit(R.displayText(mob),roomNameCol));
 										lines.append("^.^N (^<LSTROOMID^>"+CMLib.map().getDescriptiveExtendedRoomID(R)+"^</LSTROOMID^>)");
 										lines.append("\n\r");
 									}
@@ -576,8 +580,8 @@ public class ListCmd extends StdCommand
 								{
 									if(CMLib.masking().maskCheck(rest,M,true))
 									{
-										lines.append("^!"+CMStrings.padRight(cataMark(M)+M.name(mob),17)+"^N| ");
-										lines.append(R.displayText(mob));
+										lines.append("^!"+CMStrings.padRight(cataMark(M)+M.name(mob),col1)+"^N| ");
+										lines.append(CMStrings.limit(R.displayText(mob),roomNameCol));
 										lines.append("^.^N (^<LSTROOMID^>"+CMLib.map().getDescriptiveExtendedRoomID(R)+"^</LSTROOMID^>)");
 										lines.append("\n\r");
 									}
@@ -588,8 +592,8 @@ public class ListCmd extends StdCommand
 								||(CMLib.english().containsString(M.displayText(),rest))
 								||(CMLib.english().containsString(M.description(),rest)))
 								{
-									lines.append("^!"+CMStrings.padRight(cataMark(M)+M.name(mob),17)+"^N| ");
-									lines.append(R.displayText(mob));
+									lines.append("^!"+CMStrings.padRight(cataMark(M)+M.name(mob),col1)+"^N| ");
+									lines.append(CMStrings.limit(R.displayText(mob),roomNameCol));
 									lines.append("^.^N (^<LSTROOMID^>"+CMLib.map().getDescriptiveExtendedRoomID(R)+"^</LSTROOMID^>)");
 									lines.append("\n\r");
 								}
@@ -605,7 +609,7 @@ public class ListCmd extends StdCommand
 										{
 											if(CMLib.masking().maskCheck(compiledZapperMask,I,true))
 											{
-												lines.append("^!"+CMStrings.padRight(cataMark(I)+I.name(mob),17)+"^N| ");
+												lines.append("^!"+CMStrings.padRight(cataMark(I)+I.name(mob),col1)+"^N| ");
 												lines.append("INV: "+cataMark(M)+M.name(mob)+"^N");
 												lines.append(" (^<LSTROOMID^>"+CMLib.map().getDescriptiveExtendedRoomID(R)+"^</LSTROOMID^>)");
 												lines.append("\n\r");
@@ -616,7 +620,7 @@ public class ListCmd extends StdCommand
 										{
 											if(CMLib.masking().maskCheck(rest,I,true))
 											{
-												lines.append("^!"+CMStrings.padRight(cataMark(I)+I.name(mob),17)+"^N| ");
+												lines.append("^!"+CMStrings.padRight(cataMark(I)+I.name(mob),col1)+"^N| ");
 												lines.append("INV: "+cataMark(M)+M.name(mob)+"^N");
 												lines.append(" (^<LSTROOMID^>"+CMLib.map().getDescriptiveExtendedRoomID(R)+"^</LSTROOMID^>)");
 												lines.append("\n\r");
@@ -628,7 +632,7 @@ public class ListCmd extends StdCommand
 										||(CMLib.english().containsString(I.displayText(),rest))
 										||(CMLib.english().containsString(I.description(),rest)))
 										{
-											lines.append("^!"+CMStrings.padRight(cataMark(I)+I.name(mob),17)+"^N| ");
+											lines.append("^!"+CMStrings.padRight(cataMark(I)+I.name(mob),col1)+"^N| ");
 											lines.append("INV: "+cataMark(M)+M.name(mob)+"^N");
 											lines.append(" (^<LSTROOMID^>"+CMLib.map().getDescriptiveExtendedRoomID(R)+"^</LSTROOMID^>)");
 											lines.append("\n\r");
@@ -645,7 +649,7 @@ public class ListCmd extends StdCommand
 										{
 											if(CMLib.masking().maskCheck(compiledZapperMask,E,true))
 											{
-												lines.append("^!"+CMStrings.padRight(cataMark(E)+E.name(),17)+"^N| ");
+												lines.append("^!"+CMStrings.padRight(cataMark(E)+E.name(),col1)+"^N| ");
 												lines.append("SHOP: "+cataMark(M)+M.name(mob)+"^N");
 												lines.append(" (^<LSTROOMID^>"+CMLib.map().getDescriptiveExtendedRoomID(R)+"^</LSTROOMID^>)");
 												if(shopOnly)
@@ -658,7 +662,7 @@ public class ListCmd extends StdCommand
 										{
 											if(CMLib.masking().maskCheck(compiledZapperMask,E,true))
 											{
-												lines.append("^!"+CMStrings.padRight(cataMark(E)+E.name(),17)+"^N| ");
+												lines.append("^!"+CMStrings.padRight(cataMark(E)+E.name(),col1)+"^N| ");
 												lines.append("SHOP: "+cataMark(M)+M.name(mob)+"^N");
 												lines.append(" (^<LSTROOMID^>"+CMLib.map().getDescriptiveExtendedRoomID(R)+"^</LSTROOMID^>)");
 												if(shopOnly)
@@ -671,7 +675,7 @@ public class ListCmd extends StdCommand
 										{
 											if(CMLib.masking().maskCheck(rest,E,true))
 											{
-												lines.append("^!"+CMStrings.padRight(cataMark(E)+E.name(),17)+"^N| ");
+												lines.append("^!"+CMStrings.padRight(cataMark(E)+E.name(),col1)+"^N| ");
 												lines.append("SHOP: "+cataMark(M)+M.name(mob)+"^N");
 												lines.append(" (^<LSTROOMID^>"+CMLib.map().getDescriptiveExtendedRoomID(R)+"^</LSTROOMID^>)");
 												if(shopOnly)
@@ -684,7 +688,7 @@ public class ListCmd extends StdCommand
 										{
 											if(CMLib.masking().maskCheck(rest,E,true))
 											{
-												lines.append("^!"+CMStrings.padRight(cataMark(E)+E.name(),17)+"^N| ");
+												lines.append("^!"+CMStrings.padRight(cataMark(E)+E.name(),col1)+"^N| ");
 												lines.append("SHOP: "+cataMark(M)+M.name(mob)+"^N");
 												lines.append(" (^<LSTROOMID^>"+CMLib.map().getDescriptiveExtendedRoomID(R)+"^</LSTROOMID^>)");
 												if(shopOnly)
@@ -698,7 +702,7 @@ public class ListCmd extends StdCommand
 										||(CMLib.english().containsString(E.displayText(),rest))
 										||(CMLib.english().containsString(E.description(),rest)))
 										{
-											lines.append("^!"+CMStrings.padRight(cataMark(E)+E.name(),17)+"^N| ");
+											lines.append("^!"+CMStrings.padRight(cataMark(E)+E.name(),col1)+"^N| ");
 											lines.append("SHOP: "+cataMark(M)+M.name(mob)+"^N");
 											lines.append(" (^<LSTROOMID^>"+CMLib.map().getDescriptiveExtendedRoomID(R)+"^</LSTROOMID^>)");
 											if(shopOnly)
@@ -728,6 +732,7 @@ public class ListCmd extends StdCommand
 			return lines;
 		if(commands.size()==1)
 		{
+			lines.append("^HArea IDs:^N\n\r");
 			Room thisThang=null;
 			String thisOne=null;
 			for(final Enumeration<Room> r=these;r.hasMoreElements();)
@@ -741,6 +746,7 @@ public class ListCmd extends StdCommand
 		}
 		else
 		{
+			lines.append("^HStuff:^N\n\r");
 			lines.append(getStuff(mob, commands, 1, these));
 		}
 		return lines;
@@ -1460,7 +1466,7 @@ public class ListCmd extends StdCommand
 		}
 		final StringBuilder buf=new StringBuilder("");
 		final long totalTime=System.currentTimeMillis()-CMSecurity.getStartTime();
-		buf.append(L("The system has been running for ^H@x1^?.\n\r",""+CMLib.english().returnTime(totalTime,0)));
+		buf.append(L("The system has been running for ^H@x1^?.\n\r",""+CMLib.english().stringifyElapsedTimeOrTicks(totalTime,0)));
 		final long free=Runtime.getRuntime().freeMemory()/1024;
 		final long total=Runtime.getRuntime().totalMemory()/1024;
 		buf.append(L("The system is utilizing ^H@x1^?kb out of ^H@x2^?kb.\n\r",""+(total-free),""+total));
@@ -1470,7 +1476,7 @@ public class ListCmd extends StdCommand
 		final long totalMillis=CMath.s_long(CMLib.threads().systemReport("totalMillis"));
 		final long totalTicks=CMath.s_long(CMLib.threads().systemReport("totalTicks"));
 		buf.append(L("There are ^H@x1^? ticking objects in ^H@x2^? groups.\n\r",totalTickers,tickGroupSize));
-		buf.append(L("The ticking objects have consumed: ^H@x1^?.\n\r",CMLib.english().returnTime(totalMillis,totalTicks)));
+		buf.append(L("The ticking objects have consumed: ^H@x1^?.\n\r",CMLib.english().stringifyElapsedTimeOrTicks(totalMillis,totalTicks)));
 		/*
 		String topGroupNumber=CMLib.threads().systemReport("topGroupNumber");
 		long topGroupMillis=CMath.s_long(CMLib.threads().systemReport("topGroupMillis"));
@@ -1495,7 +1501,7 @@ public class ListCmd extends StdCommand
 		{
 			final long saveThreadMilliTotal=CMath.s_long(CMLib.threads().systemReport("Thread"+threadNum+"MilliTotal"));
 			final long saveThreadTickTotal=CMath.s_long(CMLib.threads().systemReport("Thread"+threadNum+"TickTotal"));
-			buf.append("Service '"+threadName+"' has consumed: ^H"+CMLib.english().returnTime(saveThreadMilliTotal,saveThreadTickTotal)+" ("+CMLib.threads().systemReport("Thread"+threadNum+"Status")+")^?.");
+			buf.append("Service '"+threadName+"' has consumed: ^H"+CMLib.english().stringifyElapsedTimeOrTicks(saveThreadMilliTotal,saveThreadTickTotal)+" ("+CMLib.threads().systemReport("Thread"+threadNum+"Status")+")^?.");
 			buf.append("\n\r");
 			threadNum++;
 			threadName=CMLib.threads().systemReport("Thread"+threadNum+"name");
@@ -1505,7 +1511,7 @@ public class ListCmd extends StdCommand
 		final long totalMOBMillis=CMath.s_long(CMLib.threads().systemReport("totalMOBMillis"));
 		final long totalMOBTicks=CMath.s_long(CMLib.threads().systemReport("totalMOBTicks"));
 		buf.append(L("There are ^H@x1^? ticking players logged on.\n\r",""+CMLib.sessions().numLocalOnline()));
-		buf.append(L("The ticking players have consumed: ^H@x1^?.\n\r",""+CMLib.english().returnTime(totalMOBMillis,totalMOBTicks)));
+		buf.append(L("The ticking players have consumed: ^H@x1^?.\n\r",""+CMLib.english().stringifyElapsedTimeOrTicks(totalMOBMillis,totalMOBTicks)));
 		/*
 		long topMOBMillis=CMath.s_long(CMLib.threads().systemReport("topMOBMillis"));
 		long topMOBTicks=CMath.s_long(CMLib.threads().systemReport("topMOBTicks"));
@@ -2214,6 +2220,77 @@ public class ListCmd extends StdCommand
 		return lines;
 	}
 
+	public StringBuilder listPostOffices(final MOB mob, final Session viewerS, final List<String> commands)
+	{
+		final StringBuilder buf=new StringBuilder("");
+		if(!CMLib.map().postOffices().hasMoreElements())
+			buf.append(L("No post offices exist."));
+		else
+		{
+			buf.append("\n\r^xPost Offices:^.^N\n\r");
+			final int COL_LEN1=CMLib.lister().fixColWidth(3.0,viewerS);
+			final int COL_LEN2=CMLib.lister().fixColWidth(20.0,viewerS);
+			final int COL_LEN3=CMLib.lister().fixColWidth(25.0,viewerS);
+			buf.append("\n\r^x"+CMStrings.padRight("#",COL_LEN1)+CMStrings.padRight(L("Chain"),COL_LEN2)+CMStrings.padRight(L("Branch"),COL_LEN3)+" Name^.^N\n\r");
+			int num=1;
+			for(final Enumeration<PostOffice> p=CMLib.map().postOffices();p.hasMoreElements();)
+			{
+				final PostOffice P=p.nextElement();
+				buf.append(CMStrings.padRight(""+num,COL_LEN1)+CMStrings.padRight(P.postalChain(),COL_LEN2)+CMStrings.padRight(P.postalBranch(),COL_LEN3)+" "+P.name()+"^.^N\n\r");
+				num++;
+			}
+		}
+		return buf;
+	}
+
+	public StringBuilder listBanks(final MOB mob, final Session viewerS, final List<String> commands)
+	{
+		final StringBuilder buf=new StringBuilder("");
+		if(!CMLib.map().banks().hasMoreElements())
+			buf.append(L("No banks exist."));
+		else
+		{
+			buf.append("\n\r^xBanks:^.^N\n\r");
+			final int COL_LEN1=CMLib.lister().fixColWidth(3.0,viewerS);
+			final int COL_LEN2=CMLib.lister().fixColWidth(20.0,viewerS);
+			final int COL_LEN3=CMLib.lister().fixColWidth(25.0,viewerS);
+			buf.append("\n\r^x"+CMStrings.padRight("#",COL_LEN1)+CMStrings.padRight(L("Chain"),COL_LEN2)+CMStrings.padRight(L("Branch"),COL_LEN3)+" Name^.^N\n\r");
+			int num=1;
+			for(final Enumeration<Banker> b=CMLib.map().banks();b.hasMoreElements();)
+			{
+				final Banker B=b.nextElement();
+				final String branch=(B instanceof MOB)?CMLib.map().getExtendedRoomID(((MOB)B).getStartRoom()):"";
+				buf.append(CMStrings.padRight(""+num,COL_LEN1)+CMStrings.padRight(B.bankChain(),COL_LEN2)+CMStrings.padRight(branch,COL_LEN3)+" "+B.name()+"^.^N\n\r");
+				num++;
+			}
+		}
+		return buf;
+	}
+
+	public StringBuilder listLibraries(final MOB mob, final Session viewerS, final List<String> commands)
+	{
+		final StringBuilder buf=new StringBuilder("");
+		if(!CMLib.map().libraries().hasMoreElements())
+			buf.append(L("No libraries exist."));
+		else
+		{
+			buf.append("\n\r^xLibraries:^.^N\n\r");
+			final int COL_LEN1=CMLib.lister().fixColWidth(3.0,viewerS);
+			final int COL_LEN2=CMLib.lister().fixColWidth(20.0,viewerS);
+			final int COL_LEN3=CMLib.lister().fixColWidth(25.0,viewerS);
+			buf.append("\n\r^x"+CMStrings.padRight("#",COL_LEN1)+CMStrings.padRight(L("Chain"),COL_LEN2)+CMStrings.padRight(L("Branch"),COL_LEN3)+" Name^.^N\n\r");
+			int num=1;
+			for(final Enumeration<Librarian> l=CMLib.map().libraries();l.hasMoreElements();)
+			{
+				final Librarian L=l.nextElement();
+				final String branch=(L instanceof MOB)?CMLib.map().getExtendedRoomID(((MOB)L).getStartRoom()):"";
+				buf.append(CMStrings.padRight(""+num,COL_LEN1)+CMStrings.padRight(L.libraryChain(),COL_LEN2)+CMStrings.padRight(branch,COL_LEN3)+" "+L.name()+"^.^N\n\r");
+				num++;
+			}
+		}
+		return buf;
+	}
+
 	public StringBuilder listQuests(final Session viewerS)
 	{
 		final StringBuilder buf=new StringBuilder("");
@@ -2387,6 +2464,49 @@ public class ListCmd extends StdCommand
 		return buf;
 	}
 
+	protected StringBuilder appendTick(final int group, final int tick, final boolean activeOnly, final String mask, final String finalCol, final int[] col, final int[] COL)
+	{
+		final StringBuilder msg=new StringBuilder("");
+		final long tickerlaststartdate=CMath.s_long(CMLib.threads().tickInfo("tickerlaststartmillis"+group+"-"+tick));
+		final long tickerlaststopdate=CMath.s_long(CMLib.threads().tickInfo("tickerlaststopmillis"+group+"-"+tick));
+		final boolean isActive=(tickerlaststopdate<tickerlaststartdate);
+		if((!activeOnly)||(isActive))
+		{
+			final String name=CMLib.threads().tickInfo("tickerName"+group+"-"+tick);
+			if((mask==null)||(name.toUpperCase().indexOf(mask)>=0))
+			{
+				final String id=CMLib.threads().tickInfo("tickerID"+group+"-"+tick);
+				String finalVal=CMLib.threads().tickInfo(finalCol+group+"-"+tick);
+				final boolean suspended=CMath.s_bool(CMLib.threads().tickInfo("tickerSuspended"+group+"-"+tick));
+				final int realCol4Len=COL[3]-(suspended?2:1);
+				if(finalVal.length()>realCol4Len)
+				{
+					if(CMath.isLong(finalVal))
+					{
+						int lvl=-1;
+						while((finalVal.length()>realCol4Len)&&(lvl<3))
+						{
+							finalVal = ""+Math.round(CMath.div(CMath.s_long(finalVal),1000.0));
+							lvl++;
+						}
+						finalVal=finalVal+"kmbg".charAt(lvl);
+					}
+				}
+				if(((col[0]++)>=2)||(activeOnly))
+				{
+					msg.append("\n\r");
+					col[0]=1;
+				}
+				final String chunk=CMStrings.padRight(""+group,COL[0])
+								   +" "+CMStrings.padRight(id+"",COL[2])
+								   +CMStrings.padRight(name,COL[1])+"^N"
+								   +" "+CMStrings.padRight((activeOnly?(finalVal+(suspended?"*":"")):finalVal+(suspended?"*":"")),COL[3]);
+				msg.append(chunk);
+			}
+		}
+		return msg;
+	}
+
 	public StringBuilder listTicks(final Session viewerS, String whichGroupStr)
 	{
 		final StringBuilder msg=new StringBuilder("\n\r");
@@ -2433,7 +2553,7 @@ public class ListCmd extends StdCommand
 			}
 		}
 
-		final boolean longer=!finalColName.equalsIgnoreCase("Status");
+		boolean longer=!finalColName.equalsIgnoreCase("Status");
 		if("ACTIVE".startsWith(whichGroupStr.toUpperCase())&&(whichGroupStr.length()>0))
 			activeOnly=true;
 		else
@@ -2451,14 +2571,17 @@ public class ListCmd extends StdCommand
 				finalColName="Msavg";
 			}
 			if(finalCol.equals("tickermillitotal"))
+			{
 				probType="tickerProb2"+ (lastNum>0?("-"+lastNum):"");
+				longer=false;
+			}
 			else
 			{
 				msg.append("\n\r^HProblems by total time used:^N\n\r");
 				msg.append(listTicks(viewerS,"problems"+ (lastNum>0?(" "+lastNum):"")+" tickermillitotal"));
 				msg.append("\n\r\n\r^HProblems by average time used:^N\n\r\n\r");
 			}
-			whichTicks=new HashSet<Pair<Integer,Integer>>();
+			whichTicks=new LinkedHashSet<Pair<Integer,Integer>>();
 			final String problemSets=CMLib.threads().systemReport(probType);
 			final List<String> sets=CMParms.parseSemicolons(problemSets, true);
 			for(final String set : sets)
@@ -2491,58 +2614,29 @@ public class ListCmd extends StdCommand
 			msg.append(CMStrings.padRight(L("G#"),COL_LEN1)+" "+CMStrings.padRight(L("ID"),COL_LEN3)+CMStrings.padRight(L("Client"),COL_LEN2)+" "+CMStrings.padRight(finalColName,COL_LEN4));
 		msg.append(CMStrings.padRight(L("G#"),COL_LEN1)+" "+CMStrings.padRight(L("ID"),COL_LEN3)+CMStrings.padRight(L("Client"),COL_LEN2)+" "+CMStrings.padRight(finalColName,COL_LEN4)+"\n\r");
 		msg.append("^N");
-		int col=0;
 		final int numGroups=CMath.s_int(CMLib.threads().tickInfo("tickGroupSize"));
 		if((mask!=null)&&(mask.length()==0))
 			mask=null;
-		String chunk=null;
-		for(int group=0;group<numGroups;group++)
+		final int[] col= {0};
+		final int[] COL = {COL_LEN1,COL_LEN2,COL_LEN3,COL_LEN4};
+		if(whichTicks != null)
 		{
-			if((whichGroups==null)||(whichGroups.contains(Integer.valueOf(group))))
+			for(final Pair<Integer,Integer> tdata : whichTicks)
 			{
-				final int tickersSize=CMath.s_int(CMLib.threads().tickInfo("tickersSize"+group));
-				for(int tick=0;tick<tickersSize;tick++)
+				final int group=tdata.first.intValue();
+				final int tick=tdata.second.intValue();
+				msg.append(this.appendTick(group, tick, activeOnly, mask, finalCol, col, COL));
+			}
+		}
+		else
+		{
+			for(int group=0;group<numGroups;group++)
+			{
+				if((whichGroups==null)||(whichGroups.contains(Integer.valueOf(group))))
 				{
-					if((whichTicks==null)||(whichTicks.contains(new Pair<Integer,Integer>(Integer.valueOf(group), Integer.valueOf(tick)))))
-					{
-						final long tickerlaststartdate=CMath.s_long(CMLib.threads().tickInfo("tickerlaststartmillis"+group+"-"+tick));
-						final long tickerlaststopdate=CMath.s_long(CMLib.threads().tickInfo("tickerlaststopmillis"+group+"-"+tick));
-						final boolean isActive=(tickerlaststopdate<tickerlaststartdate);
-						if((!activeOnly)||(isActive))
-						{
-							final String name=CMLib.threads().tickInfo("tickerName"+group+"-"+tick);
-							if((mask==null)||(name.toUpperCase().indexOf(mask)>=0))
-							{
-								final String id=CMLib.threads().tickInfo("tickerID"+group+"-"+tick);
-								String finalVal=CMLib.threads().tickInfo(finalCol+group+"-"+tick);
-								final boolean suspended=CMath.s_bool(CMLib.threads().tickInfo("tickerSuspended"+group+"-"+tick));
-								final int realCol4Len=COL_LEN4-(suspended?2:1);
-								if(finalVal.length()>realCol4Len)
-								{
-									if(CMath.isLong(finalVal))
-									{
-										int lvl=-1;
-										while((finalVal.length()>realCol4Len)&&(lvl<3))
-										{
-											finalVal = ""+Math.round(CMath.div(CMath.s_long(finalVal),1000.0));
-											lvl++;
-										}
-										finalVal=finalVal+"kmbg".charAt(lvl);
-									}
-								}
-								if(((col++)>=2)||(activeOnly))
-								{
-									msg.append("\n\r");
-									col=1;
-								}
-								chunk=CMStrings.padRight(""+group,COL_LEN1)
-								   +" "+CMStrings.padRight(id+"",COL_LEN3)
-								   +CMStrings.padRight(name,COL_LEN2)+"^N"
-								   +" "+CMStrings.padRight((activeOnly?(finalVal+(suspended?"*":"")):finalVal+(suspended?"*":"")),COL_LEN4);
-								msg.append(chunk);
-							}
-						}
-					}
+					final int tickersSize=CMath.s_int(CMLib.threads().tickInfo("tickersSize"+group));
+					for(int tick=0;tick<tickersSize;tick++)
+						msg.append(this.appendTick(group, tick, activeOnly, mask, finalCol, col, COL));
 				}
 			}
 		}
@@ -3969,6 +4063,9 @@ public class ListCmd extends StdCommand
 		SOCIALS("SOCIALS",new SecFlag[]{SecFlag.LISTADMIN,SecFlag.CMDSOCIALS,SecFlag.AREA_CMDSOCIALS}),
 		AREATYPES("AREATYPES",new SecFlag[]{SecFlag.LISTADMIN,SecFlag.CMDAREAS}),
 		GENSTATS("STATS",new SecFlag[]{SecFlag.LISTADMIN,SecFlag.CMDITEMS,SecFlag.CMDMOBS}),
+		BANKS("BANKS",new SecFlag[]{SecFlag.LISTADMIN,SecFlag.CMDMOBS}),
+		LIBRARIES("LIBRARIES",new SecFlag[]{SecFlag.LISTADMIN,SecFlag.CMDMOBS}),
+		POSTOFFICES("POSTOFFICES",new SecFlag[]{SecFlag.LISTADMIN,SecFlag.CMDMOBS}),
 		;
 		public String[]			   cmd;
 		public CMSecurity.SecGroup flags;
@@ -4281,8 +4378,18 @@ public class ListCmd extends StdCommand
 		else
 		{
 			@SuppressWarnings("unchecked")
-			final
-			PhysicalAgent P=mob.location().fetchFromMOBRoomFavorsItems(mob, null, wd, Filterer.ANYTHING);
+			Modifiable P=mob.location().fetchFromMOBRoomFavorsItems(mob, null, wd, Filterer.ANYTHING);
+			if(P==null)
+			{
+				if(wd.equalsIgnoreCase("here"))
+					P=mob.location();
+				else
+				if(CMLib.map().getRoom(wd)!=null)
+					P=CMLib.map().getRoom(wd);
+				else
+				if(CMLib.map().getArea(wd)!=null)
+					P=CMLib.map().getArea(wd);
+			}
 			if(P!=null)
 				mob.tell("Stats for '"+P.ID()+"': "+CMParms.toListString(P.getStatCodes()));
 			else
@@ -4817,7 +4924,7 @@ public class ListCmd extends StdCommand
 		}
 		else
 			a=CMLib.map().areas();
-		Faction theFaction=CMLib.factions().getFaction(CMLib.factions().AlignID());
+		Faction theFaction=CMLib.factions().getFaction(CMLib.factions().getAlignmentID());
 		if(theFaction == null)
 		{
 			for(final Enumeration<Faction> e=CMLib.factions().factions();e.hasMoreElements();)
@@ -4915,7 +5022,7 @@ public class ListCmd extends StdCommand
 			else
 				set[3]=CMStrings.padRight(L("NAMELESS"),17)+"| ";
 			set[4]=CMStrings.padRight(S.getAddress(),17)+"| ";
-			set[5]=CMStrings.padRight(CMLib.english().returnTime(S.getIdleMillis(),0)+"",17);
+			set[5]=CMStrings.padRight(CMLib.english().stringifyElapsedTimeOrTicks(S.getIdleMillis(),0)+"",17);
 			broken.add(set);
 		}
 		List<String[]> sorted=null;
@@ -4988,6 +5095,15 @@ public class ListCmd extends StdCommand
 				mob.tell(L("You are not allowed to use this command!"));
 			else
 			{
+				if(!helpChecked)
+				{
+					helpChecked=true;
+					for(final String key : V)
+					{
+						if(!CMLib.help().getArcHelpFile().containsKey("LIST_"+key.toUpperCase().trim()))
+							Log.helpOut("Missing help entry: LIST_"+key.toUpperCase().trim());
+					}
+				}
 				final StringBuilder str=new StringBuilder("");
 				for(int v=0;v<V.size();v++)
 				{
@@ -5037,7 +5153,6 @@ public class ListCmd extends StdCommand
 			s.wraplessPrintln(roomDetails(mob.session(), mob.location().getArea().getMetroMap(), mob.location(), rest).toString());
 			break;
 		case AREA:
-			s.println("^HArea IDs:^N");
 			s.wraplessPrintln(roomTypes(mob, mob.location().getArea().getMetroMap(), mob.location(), commands).toString());
 			break;
 		case LOCALES:
@@ -5107,6 +5222,15 @@ public class ListCmd extends StdCommand
 			break;
 		case DISEASES:
 			listAbilities(mob,s,commands,"Disease",Ability.ACODE_DISEASE);
+			break;
+		case POSTOFFICES:
+			mob.tell(listPostOffices(mob,s,commands).toString());
+			break;
+		case BANKS:
+			mob.tell(listBanks(mob,s,commands).toString());
+			break;
+		case LIBRARIES:
+			mob.tell(listLibraries(mob,s,commands).toString());
 			break;
 		case POISONS:
 			listAbilities(mob,s,commands,"Poison",Ability.ACODE_POISON);

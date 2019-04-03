@@ -10,6 +10,7 @@ import com.planet_ink.coffee_mud.CharClasses.interfaces.*;
 import com.planet_ink.coffee_mud.Commands.interfaces.*;
 import com.planet_ink.coffee_mud.Common.DefaultFaction;
 import com.planet_ink.coffee_mud.Common.interfaces.*;
+import com.planet_ink.coffee_mud.Common.interfaces.Faction.FactionChangeEvent;
 import com.planet_ink.coffee_mud.Exits.interfaces.*;
 import com.planet_ink.coffee_mud.Items.interfaces.*;
 import com.planet_ink.coffee_mud.Libraries.interfaces.MaskingLibrary;
@@ -54,6 +55,14 @@ public interface Faction extends CMCommon, MsgListener, Contingent
 	 * @param aname the factionID (and default name)
 	 */
 	public void initializeFaction(String aname);
+
+	/**
+	 * Returns the full-uppercase version of the faction name, which
+	 * might be useful for key-ing and searches.
+	 *
+	 * @return the uppercase version of the name
+	 */
+	public String upperName();
 
 	/**
 	 * Initializes a new faction from a faction.ini properties formatted document,
@@ -510,6 +519,17 @@ public interface Faction extends CMCommon, MsgListener, Contingent
 	public FactionChangeEvent[] findAbilityChangeEvents(Ability key);
 
 	/**
+	 * Returns a FactionChangeEvent that applies when the given Social is used
+	 * @see com.planet_ink.coffee_mud.Common.interfaces.Faction.FactionChangeEvent
+	 * @see com.planet_ink.coffee_mud.Common.interfaces.Faction#changeEventKeys()
+	 * @see com.planet_ink.coffee_mud.Common.interfaces.Faction#executeChange(MOB, MOB, com.planet_ink.coffee_mud.Common.interfaces.Faction.FactionChangeEvent)
+	 * @see com.planet_ink.coffee_mud.Common.interfaces.Faction#ALL_CHANGE_EVENT_TYPES()
+	 * @param key the Social to find a change event for.
+	 * @return the FactionChangeEvent that applies, or null.
+	 */
+	public FactionChangeEvent[] findSocialChangeEvents(final Social soc);
+
+	/**
 	 * Returns a FactionChangeEvent that applies when the given event name (a trigger
 	 * code) occurs in the game.
 	 * @see com.planet_ink.coffee_mud.Common.interfaces.Faction.FactionChangeEvent
@@ -946,9 +966,9 @@ public interface Faction extends CMCommon, MsgListener, Contingent
 		 * @see com.planet_ink.coffee_mud.Common.interfaces.Faction.FactionChangeEvent#eventID()
 		 * @see com.planet_ink.coffee_mud.Common.interfaces.Faction.FactionChangeEvent#IDclassFilter()
 		 * @see com.planet_ink.coffee_mud.Common.interfaces.Faction.FactionChangeEvent#IDdomainFilter()
-		 * @return -1, or an index into an Ability FLAG
+		 * @return -1, or an mask for an Ability FLAG
 		 */
-		public int IDflagFilter();
+		public long IDflagFilter();
 
 		/**
 		 * A derivative of the event id, this will return a value of 0 or above
@@ -958,7 +978,7 @@ public interface Faction extends CMCommon, MsgListener, Contingent
 		 * @see com.planet_ink.coffee_mud.Common.interfaces.Faction.FactionChangeEvent#eventID()
 		 * @see com.planet_ink.coffee_mud.Common.interfaces.Faction.FactionChangeEvent#IDclassFilter()
 		 * @see com.planet_ink.coffee_mud.Common.interfaces.Faction.FactionChangeEvent#IDflagFilter()
-		 * @return -1, or an index into an Ability ACODE
+		 * @return -1, or a mask for an Ability domain
 		 */
 		public int IDdomainFilter();
 
@@ -1447,7 +1467,7 @@ public interface Faction extends CMCommon, MsgListener, Contingent
 		 * @see com.planet_ink.coffee_mud.Abilities.interfaces.Ability#FLAG_DESCS
 		 * @return a bitmask of Ability flags that must not be set by the ability
 		 */
-		public int notflag();
+		public long notflag();
 
 		/**
 		 * A bitmask of ability flags that MUST be set for this usage to apply to an ability
@@ -1456,7 +1476,7 @@ public interface Faction extends CMCommon, MsgListener, Contingent
 		 * @see com.planet_ink.coffee_mud.Abilities.interfaces.Ability#FLAG_DESCS
 		 * @return a bitmask of Ability flags that must be set by the ability
 		 */
-		public int flag();
+		public long flag();
 
 		/**
 		 * Whether the abilityFlags() method is possibly a specific Ability ID
@@ -1699,8 +1719,12 @@ public interface Faction extends CMCommon, MsgListener, Contingent
 	public static final long IFLAG_CUSTOMTICK=4;
 
 	/** legacy enumerator constant for {@link FRange#alignEquiv()} denoting that the range does not reflect alignment */
-	public enum Align {
-		INDIFF, EVIL, NEUTRAL, GOOD
+	public enum Align
+	{
+		INDIFF, EVIL, NEUTRAL, GOOD, LAWFUL, CHAOTIC, MODERATE
+		;
+		public final static Align[] alignAligns = { EVIL, NEUTRAL, GOOD};
+		public final static Align[] inclinationAligns = { CHAOTIC, MODERATE, LAWFUL};
 	}
 
 	/** String list for the valid {@link Faction#experienceFlag()} constants */

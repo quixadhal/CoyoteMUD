@@ -363,6 +363,16 @@ public class StdBoardable extends StdPortal implements PrivateProperty, Boardabl
 	@Override
 	public void destroy()
 	{
+		final CMObject propOwner=getOwnerObject();
+		if(propOwner != null)
+		{
+			if((propOwner instanceof MOB)
+			&&(((MOB)propOwner).playerStats()!=null))
+				((MOB)propOwner).playerStats().getExtItems().delItem(this);
+			else
+			if(propOwner instanceof Clan)
+				((Clan)propOwner).getExtItems().delItem(this);
+		}
 		if(area!=null)
 		{
 			final Area A=area;
@@ -427,7 +437,7 @@ public class StdBoardable extends StdPortal implements PrivateProperty, Boardabl
 		final String owner=getOwnerName();
 		if(owner.length()==0)
 			return null;
-		final Clan C=CMLib.clans().getClan(owner);
+		final Clan C=CMLib.clans().getClanExact(owner);
 		if(C!=null)
 			return C;
 		return CMLib.players().getLoadPlayer(owner);
@@ -482,7 +492,7 @@ public class StdBoardable extends StdPortal implements PrivateProperty, Boardabl
 	{
 		if((this.getOwnerName().length()>0)&&(!this.getOwnerName().startsWith("#")))
 		{
-			final Clan clan = CMLib.clans().getClan(this.getOwnerName());
+			final Clan clan = CMLib.clans().getClanExact(this.getOwnerName());
 			if(clan != null)
 				clan.getExtItems().delItem(this);
 			else
@@ -742,7 +752,7 @@ public class StdBoardable extends StdPortal implements PrivateProperty, Boardabl
 			}
 			else
 			{
-				final Clan C=CMLib.clans().getClan(getOwnerName());
+				final Clan C=CMLib.clans().getClanExact(getOwnerName());
 				if(C!=null)
 				{
 					C.getExtItems().delItem(this);
@@ -855,7 +865,7 @@ public class StdBoardable extends StdPortal implements PrivateProperty, Boardabl
 						}
 					}
 					Clan C;
-					if(clanSale && ((C=CMLib.clans().getClan(me.getOwnerName()))!=null))
+					if(clanSale && ((C=CMLib.clans().getClanExact(me.getOwnerName()))!=null))
 					{
 						if(!C.getExtItems().isContent(me))
 						{
@@ -886,7 +896,7 @@ public class StdBoardable extends StdPortal implements PrivateProperty, Boardabl
 			}
 			else
 			{
-				final Clan C=CMLib.clans().getClan(getOwnerName());
+				final Clan C=CMLib.clans().getClanExact(getOwnerName());
 				if(C!=null)
 				{
 					if(!C.getExtItems().isContent(this))

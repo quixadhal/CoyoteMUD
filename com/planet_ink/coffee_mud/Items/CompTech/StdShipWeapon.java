@@ -42,6 +42,12 @@ import java.util.*;
 */
 public class StdShipWeapon extends StdElecCompItem implements ShipWarComponent
 {
+	public StdShipWeapon()
+	{
+		super();
+		this.maxRechargePer = 0.2f;
+	}
+
 	@Override
 	public String ID()
 	{
@@ -73,7 +79,7 @@ public class StdShipWeapon extends StdElecCompItem implements ShipWarComponent
 	@Override
 	public int powerNeeds()
 	{
-		return (int) Math.min((int) Math.min(powerCapacity,powerSetting) - power, (int)Math.round((double)powerCapacity*getRechargeRate()));
+		return (int) Math.min((int) Math.min(powerCapacity,powerSetting) - power, (int)Math.round((double)powerCapacity*getRechargeRate()*this.getComputedEfficiency()));
 	}
 
 	protected synchronized SpaceShip getMyShip()
@@ -159,24 +165,28 @@ public class StdShipWeapon extends StdElecCompItem implements ShipWarComponent
 	{
 		if(!super.tick(ticking, tickID))
 			return false;
-		if((ticking == this) && (tickID == Tickable.TICKID_BEAMWEAPON))
-		{
-			this.destroy();
-			return false;
-		}
 		return true;
+	}
+
+	protected int getBleedAmount()
+	{
+		final double bleedAmt = CMath.mul(powerCapacity, 0.1-(getComputedEfficiency()*.1));
+		return (int)Math.round(bleedAmt);
 	}
 
 	@Override
 	public void executeMsg(final Environmental myHost, final CMMsg msg)
 	{
-		super.executeMsg(myHost, msg);
 		if(msg.amITarget(this))
 		{
 			switch(msg.targetMinor())
 			{
+			default:
+				super.executeMsg(myHost, msg);
+				break;
 			case CMMsg.TYP_ACTIVATE:
 			{
+				super.executeMsg(myHost, msg);
 				final LanguageLibrary lang=CMLib.lang();
 				final Software controlI=(msg.tool() instanceof Software)?((Software)msg.tool()):null;
 				final MOB mob=msg.source();
@@ -230,20 +240,26 @@ public class StdShipWeapon extends StdElecCompItem implements ShipWarComponent
 							if(ship == null)
 								reportError(this, controlI, mob, lang.L("@x1 did not respond.",me.name(mob)), lang.L("Failure: @x1: control syntax failure.",me.name(mob)));
 							else
-							if(this.power < this.powerSetting)
+							if(this.power < Math.min(powerCapacity,powerSetting) - getBleedAmount())
 								reportError(this, controlI, mob, lang.L("@x1 is not charged up.",me.name(mob)), lang.L("Failure: @x1: weapon is not charged.",me.name(mob)));
 							else
 							{
 								if(ship instanceof SpaceShip)
 								{
 									final ShipDir dir = CMLib.map().getDirectionFromDir(((SpaceShip)ship).facing(), ((SpaceShip)ship).roll(), targetDirection);
-									if(CMParms.contains(getCurrentBattleCoveredDirections(), dir))
+									if(!CMParms.contains(getCurrentBattleCoveredDirections(), dir))
 										reportError(this, controlI, mob, lang.L("@x1 is not facing a covered direction.",me.name(mob)), lang.L("Failure: @x1: weapon is not facing correctly.",me.name(mob)));
 								}
-								final SpaceObject weaponO=(SpaceObject)CMClass.getTech("StdSpaceTech");
+								final SpaceObject weaponO=(SpaceObject)CMClass.getTech("StdSpaceTechWeapon");
 								int damageMsgType = CMMsg.TYP_ELECTRIC;
 								if(getDamageMsgTypes().length>0)
 									damageMsgType = getDamageMsgTypes()[CMLib.dice().roll(1, getDamageMsgTypes().length, -1)];
+								final Integer weaponDamageType = Weapon.MSG_TYPE_MAP.get(Integer.valueOf(damageMsgType));
+								if((weaponDamageType != null)&&(weaponDamageType.intValue()>=0))
+									((Weapon)weaponO).setWeaponDamageType(weaponDamageType.intValue());
+								else
+									((Weapon)weaponO).setWeaponDamageType(Weapon.TYPE_BASHING);
+								((Weapon)weaponO).setWeaponClassification(Weapon.CLASS_RANGED);
 								switch(damageMsgType)
 								{
 								case CMMsg.TYP_COLLISION:
@@ -296,9 +312,10 @@ public class StdShipWeapon extends StdElecCompItem implements ShipWarComponent
 									break;
 								}
 								weaponO.setKnownSource(ship);
-								final long[] firstCoords = CMLib.map().moveSpaceObject(ship.coordinates(), targetDirection, ship.radius());
+								final int weaponRadius = 10;
+								final long[] firstCoords = CMLib.map().moveSpaceObject(ship.coordinates(), targetDirection, ship.radius()+weaponRadius+1);
 								weaponO.setCoords(firstCoords);
-								weaponO.setRadius(10);
+								weaponO.setRadius(weaponRadius);
 								weaponO.setDirection(targetDirection);
 								weaponO.setSpeed(SpaceObject.VELOCITY_LIGHT);
 								((Technical)weaponO).setTechLevel(techLevel());
@@ -308,6 +325,7 @@ public class StdShipWeapon extends StdElecCompItem implements ShipWarComponent
 								((Technical)weaponO).phyStats().setDamage(phyStats().damage());
 								CMLib.threads().startTickDown(weaponO, Tickable.TICKID_BEAMWEAPON, 10);
 								CMLib.map().addObjectToSpace(weaponO, firstCoords);
+								setPowerRemaining(0);
 							}
 						}
 						else
@@ -317,13 +335,19 @@ public class StdShipWeapon extends StdElecCompItem implements ShipWarComponent
 				break;
 			}
 			case CMMsg.TYP_POWERCURRENT:
+				if(powerRemaining() > 0)
+					setPowerRemaining(powerRemaining()-Math.min(getBleedAmount(),1));
+				super.executeMsg(myHost, msg);
 				break;
 			case CMMsg.TYP_DEACTIVATE:
+				super.executeMsg(myHost, msg);
 				this.activate(false);
 				this.power = 0;
 				break;
 			}
 		}
+		else
+			super.executeMsg(myHost, msg);
 	}
 
 	@Override

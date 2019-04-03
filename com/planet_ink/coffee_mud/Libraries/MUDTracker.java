@@ -64,6 +64,25 @@ public class MUDTracker extends StdLibrary implements TrackingLibrary
 
 	}
 
+	protected final RFilters emptyFilter = new DefaultRFilters();
+	protected final RFilter validIDFilter = new RFilter()
+	{
+		@Override
+		public boolean isFilteredOut(final Room hostR, final Room R, final Exit E, final int dir)
+		{
+			if(R==null)
+				return true;
+			if((R.roomID()!=null)
+			&&(R.roomID().length()>0))
+				return false;
+			if((R.getGridParent()!=null)
+			&&(R.getGridParent().roomID()!=null)
+			&&(R.getGridParent().roomID().length()>0))
+				return false;
+			return true;
+		}
+	};
+
 	protected static class DefaultRFilters implements RFilters
 	{
 		private RFilterNode head=null;
@@ -663,6 +682,16 @@ public class MUDTracker extends StdLibrary implements TrackingLibrary
 	}
 
 	@Override
+	public Room getNearestValidIDRoom(final Room R)
+	{
+		if(R==null)
+			return null;
+		if(!validIDFilter.isFilteredOut(R, R, null, 0))
+			return R;
+		return getRadiantRoomTarget(R, emptyFilter, validIDFilter);
+	}
+
+	@Override
 	public void stopTracking(final MOB mob)
 	{
 		final List<Ability> V=CMLib.flags().flaggedAffects(mob,Ability.FLAG_TRACKING);
@@ -855,7 +884,7 @@ public class MUDTracker extends StdLibrary implements TrackingLibrary
 				if(oldRoom.okMessage(mob,msg))
 				{
 					relock=true;
-					msg=CMClass.getMsg(mob,nextExit,null,CMMsg.MSG_OK_VISUAL,CMMsg.MSG_UNLOCK,CMMsg.MSG_OK_VISUAL,L("<S-NAME> unlock(s) <T-NAMESELF>."));
+					msg=CMClass.getMsg(mob,nextExit,null,CMMsg.MSG_OK_VISUAL,CMMsg.MSG_UNLOCK,CMMsg.MSG_OK_VISUAL,L("<S-NAME> unlock(s) <T-NAMESELF><O-WITHNAME>."));
 					if(oldRoom.okMessage(mob,msg))
 						CMLib.utensils().roomAffectFully(msg,oldRoom,direction);
 				}
@@ -874,6 +903,9 @@ public class MUDTracker extends StdLibrary implements TrackingLibrary
 			return false;
 		}
 
+		if(mob.numAllAbilities()==0)
+			walk(mob,direction,false,false);
+		else
 		if(((flags.isWaterySurfaceRoom(nextRoom)))
 		   &&(!flags.isWaterWorthy(mob))
 		   &&(!flags.isInFlight(mob))
@@ -943,7 +975,7 @@ public class MUDTracker extends StdLibrary implements TrackingLibrary
 					CMMsg msg=CMClass.getMsg(mob,opExit,null,CMMsg.MSG_OK_VISUAL,CMMsg.MSG_OK_VISUAL,CMMsg.MSG_OK_VISUAL,null);
 					if(nextRoom.okMessage(mob,msg))
 					{
-						msg=CMClass.getMsg(mob,opExit,null,CMMsg.MSG_OK_VISUAL,CMMsg.MSG_LOCK,CMMsg.MSG_OK_VISUAL,L("<S-NAME> lock(s) <T-NAMESELF>."));
+						msg=CMClass.getMsg(mob,opExit,null,CMMsg.MSG_OK_VISUAL,CMMsg.MSG_LOCK,CMMsg.MSG_OK_VISUAL,L("<S-NAME> lock(s) <T-NAMESELF><O-WITHNAME>."));
 						if(nextRoom.okMessage(mob,msg))
 							CMLib.utensils().roomAffectFully(msg,nextRoom,opDirection);
 					}

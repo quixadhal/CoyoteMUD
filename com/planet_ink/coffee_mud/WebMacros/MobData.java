@@ -1139,7 +1139,7 @@ public class MobData extends StdWebMacro
 				httpReq.getRequestObjects().put(last,R);
 			}
 		}
-		
+
 		String shopMobCode=httpReq.getUrlParameter("SHOPMOB");
 		if(shopMobCode==null)
 			shopMobCode="";
@@ -1412,11 +1412,11 @@ public class MobData extends StdWebMacro
 					str.append(old);
 					break;
 				case ALIGNMENT: // alignment
-					if(CMLib.factions().getFaction(CMLib.factions().AlignID())!=null)
+					if(CMLib.factions().getFaction(CMLib.factions().getAlignmentID())!=null)
 					{
 						if(firstTime)
-							old=""+M.fetchFaction(CMLib.factions().AlignID());
-						for(final Faction.Align v : Faction.Align.values())
+							old=""+M.fetchFaction(CMLib.factions().getAlignmentID());
+						for(final Faction.Align v : Faction.Align.alignAligns)
 						{
 							if(v!=Faction.Align.INDIFF)
 							{

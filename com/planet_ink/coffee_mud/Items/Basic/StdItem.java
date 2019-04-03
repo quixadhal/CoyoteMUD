@@ -33,7 +33,6 @@ import java.util.*;
    See the License for the specific language governing permissions and
    limitations under the License.
 */
-@SuppressWarnings({"unchecked","rawtypes"})
 public class StdItem implements Item
 {
 	@Override
@@ -72,6 +71,7 @@ public class StdItem implements Item
 	protected SVector<Behavior>			behaviors		= null;
 	protected SVector<ScriptingEngine>	scripts			= null;
 
+	@SuppressWarnings("rawtypes")
 	protected ApplyAffectPhyStats		affectPhyStats	= new ApplyAffectPhyStats(this);
 
 	public StdItem()
@@ -201,6 +201,7 @@ public class StdItem implements Item
 		return basePhyStats;
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public void recoverPhyStats()
 	{
@@ -240,6 +241,7 @@ public class StdItem implements Item
 		return false;
 	}
 
+	@SuppressWarnings("rawtypes")
 	protected void cloneFix(final Item I)
 	{
 		destroyed=false;
@@ -1113,7 +1115,7 @@ public class StdItem implements Item
 		case CMMsg.TYP_WEAPONATTACK:
 		case CMMsg.TYP_ATTACKMISS:
 			if((this instanceof BoardableShip)
-			||((this instanceof Rideable)||(((Rideable)this).rideBasis()==Rideable.RIDEABLE_WATER)))
+			||((this instanceof Rideable)&&(((Rideable)this).rideBasis()==Rideable.RIDEABLE_WATER)))
 				return true;
 			break;
 		case CMMsg.TYP_EXPIRE:
@@ -1431,6 +1433,7 @@ public class StdItem implements Item
 		case CMMsg.TYP_JUSTICE:
 		case CMMsg.TYP_WAND_USE:
 		case CMMsg.TYP_RECIPELEARNED:
+		case CMMsg.TYP_COLD: // free metal
 		case CMMsg.TYP_ACID: // slime
 		case CMMsg.TYP_FIRE: // lighting
 		case CMMsg.TYP_WATER: // rust
@@ -1869,6 +1872,7 @@ public class StdItem implements Item
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public Enumeration<Ability> effects()
 	{
@@ -1965,6 +1969,7 @@ public class StdItem implements Item
 		return behaviors.size();
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public Enumeration<Behavior> behaviors()
 	{
@@ -2051,7 +2056,7 @@ public class StdItem implements Item
 			if(scripts.remove(S))
 			{
 				if(scripts.isEmpty())
-					scripts=new SVector(1);
+					scripts=new SVector<ScriptingEngine>(1);
 				if(((behaviors==null)||(behaviors.isEmpty()))&&((scripts==null)||(scripts.isEmpty())))
 					CMLib.threads().deleteTick(this,Tickable.TICKID_ITEM_BEHAVIOR);
 			}
@@ -2075,6 +2080,7 @@ public class StdItem implements Item
 		return (scripts == null) ? 0 : scripts.size();
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public Enumeration<ScriptingEngine> scripts()
 	{

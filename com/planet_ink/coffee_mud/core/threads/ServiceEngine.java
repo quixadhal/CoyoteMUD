@@ -494,51 +494,56 @@ public class ServiceEngine implements ThreadEngine
 	@Override
 	public String systemReport(final String itemCode)
 	{
-		long totalMOBMillis=0;
-		long totalMOBTicks=0;
-		long topMOBMillis=0;
-		long topMOBTicks=0;
-		MOB topMOBClient=null;
-		for(final Session S : CMLib.sessions().localOnlineIterable())
+		final String cd=itemCode.toLowerCase();
+		if(cd.startsWith("topmob")||cd.startsWith("totalmob"))
 		{
-			totalMOBMillis+=S.getTotalMillis();
-			totalMOBTicks+=S.getTotalTicks();
-			if(S.getTotalMillis()>topMOBMillis)
+			long totalMOBMillis=0;
+			long totalMOBTicks=0;
+			long topMOBMillis=0;
+			long topMOBTicks=0;
+			MOB topMOBClient=null;
+			for(final Session S : CMLib.sessions().localOnlineIterable())
 			{
-				topMOBMillis=S.getTotalMillis();
-				topMOBTicks=S.getTotalTicks();
-				topMOBClient=S.mob();
+				totalMOBMillis+=S.getTotalMillis();
+				totalMOBTicks+=S.getTotalTicks();
+				if(S.getTotalMillis()>topMOBMillis)
+				{
+					topMOBMillis=S.getTotalMillis();
+					topMOBTicks=S.getTotalTicks();
+					topMOBClient=S.mob();
+				}
 			}
-		}
 
-		if(itemCode.equalsIgnoreCase("totalMOBMillis"))
-			return ""+totalMOBMillis;
-		else
-		if(itemCode.equalsIgnoreCase("totalMOBMillisTime"))
-			return CMLib.english().returnTime(totalMOBMillis,0);
-		else
-		if(itemCode.equalsIgnoreCase("totalMOBMillisTimePlusAverage"))
-			return CMLib.english().returnTime(totalMOBMillis,totalMOBTicks);
-		else
-		if(itemCode.equalsIgnoreCase("totalMOBTicks"))
-			return ""+totalMOBTicks;
-		else
-		if(itemCode.equalsIgnoreCase("topMOBMillis"))
-			return ""+topMOBMillis;
-		else
-		if(itemCode.equalsIgnoreCase("topMOBMillisTime"))
-			return CMLib.english().returnTime(topMOBMillis,0);
-		else
-		if(itemCode.equalsIgnoreCase("topMOBMillisTimePlusAverage"))
-			return CMLib.english().returnTime(topMOBMillis,topMOBTicks);
-		else
-		if(itemCode.equalsIgnoreCase("topMOBTicks"))
-			return ""+topMOBTicks;
-		else
-		if(itemCode.equalsIgnoreCase("topMOBClient"))
-		{
-			if(topMOBClient!=null)
-				return topMOBClient.Name();
+			if(itemCode.equalsIgnoreCase("totalMOBMillis"))
+				return ""+totalMOBMillis;
+			else
+			if(itemCode.equalsIgnoreCase("totalMOBMillisTime"))
+				return CMLib.english().stringifyElapsedTimeOrTicks(totalMOBMillis,0);
+			else
+			if(itemCode.equalsIgnoreCase("totalMOBMillisTimePlusAverage"))
+				return CMLib.english().stringifyElapsedTimeOrTicks(totalMOBMillis,totalMOBTicks);
+			else
+			if(itemCode.equalsIgnoreCase("totalMOBTicks"))
+				return ""+totalMOBTicks;
+			else
+			if(itemCode.equalsIgnoreCase("topMOBMillis"))
+				return ""+topMOBMillis;
+			else
+			if(itemCode.equalsIgnoreCase("topMOBMillisTime"))
+				return CMLib.english().stringifyElapsedTimeOrTicks(topMOBMillis,0);
+			else
+			if(itemCode.equalsIgnoreCase("topMOBMillisTimePlusAverage"))
+				return CMLib.english().stringifyElapsedTimeOrTicks(topMOBMillis,topMOBTicks);
+			else
+			if(itemCode.equalsIgnoreCase("topMOBTicks"))
+				return ""+topMOBTicks;
+			else
+			if(itemCode.equalsIgnoreCase("topMOBClient"))
+			{
+				if(topMOBClient!=null)
+					return topMOBClient.Name();
+				return "";
+			}
 			return "";
 		}
 		else
@@ -592,7 +597,7 @@ public class ServiceEngine implements ThreadEngine
 			int total=10;
 			if(x>0)
 				total=CMath.s_int(itemCode.substring(x+1));
-			final Vector<Triad<Long,Integer,Integer>> list=new Vector<Triad<Long,Integer,Integer>>();
+			final Vector<Quad<Long,Integer,Integer,String>> list=new Vector<Quad<Long,Integer,Integer,String>>();
 			int group=0;
 			for(final Iterator<TickableGroup> e=tickGroups();e.hasNext();)
 			{
@@ -609,12 +614,12 @@ public class ServiceEngine implements ThreadEngine
 						final Triad<Long,Integer,Integer> t=list.get(i);
 						if(C.getMilliTotal()>=t.first.longValue())
 						{
-							list.add(i,new Triad<Long,Integer,Integer>(Long.valueOf(C.getMilliTotal()),Integer.valueOf(group),Integer.valueOf(tick)));
+							list.add(i,new Quad<Long,Integer,Integer,String>(Long.valueOf(C.getMilliTotal()),Integer.valueOf(group),Integer.valueOf(tick),C.getClientObject().name()));
 							break;
 						}
 					}
 					if((list.size()==0)||((i>=list.size())&&(list.size()<total)))
-						list.add(new Triad<Long,Integer,Integer>(Long.valueOf(C.getMilliTotal()),Integer.valueOf(group),Integer.valueOf(tick)));
+						list.add(new Quad<Long,Integer,Integer,String>(Long.valueOf(C.getMilliTotal()),Integer.valueOf(group),Integer.valueOf(tick),C.getClientObject().name()));
 					while(list.size()>total)
 						list.remove(list.size()-1);
 					tick++;
@@ -624,7 +629,7 @@ public class ServiceEngine implements ThreadEngine
 			if(list.size()==0)
 				return "";
 			final StringBuilder str=new StringBuilder("");
-			for(final Triad<Long,Integer,Integer> t : list)
+			for(final Quad<Long,Integer,Integer,String> t : list)
 				str.append(';').append(t.second).append(',').append(t.third);
 			return str.toString().substring(1);
 		}
@@ -679,7 +684,7 @@ public class ServiceEngine implements ThreadEngine
 			return ""+(Runtime.getRuntime().totalMemory()/1000);
 		else
 		if(itemCode.equalsIgnoreCase("totalTime"))
-			return ""+CMLib.english().returnTime(System.currentTimeMillis()-CMSecurity.getStartTime(),0);
+			return ""+CMLib.english().stringifyElapsedTimeOrTicks(System.currentTimeMillis()-CMSecurity.getStartTime(),0);
 		else
 		if(itemCode.equalsIgnoreCase("startTime"))
 			return CMLib.time().date2String(CMSecurity.getStartTime());
@@ -694,10 +699,10 @@ public class ServiceEngine implements ThreadEngine
 			return ""+totalMillis;
 		else
 		if(itemCode.equalsIgnoreCase("totalMillisTime"))
-			return CMLib.english().returnTime(totalMillis,0);
+			return CMLib.english().stringifyElapsedTimeOrTicks(totalMillis,0);
 		else
 		if(itemCode.equalsIgnoreCase("totalMillisTimePlusAverage"))
-			return CMLib.english().returnTime(totalMillis,totalTicks);
+			return CMLib.english().stringifyElapsedTimeOrTicks(totalMillis,totalTicks);
 		else
 		if(itemCode.equalsIgnoreCase("totalTicks"))
 			return ""+totalTicks;
@@ -718,10 +723,10 @@ public class ServiceEngine implements ThreadEngine
 			return ""+topGroupMillis;
 		else
 		if(itemCode.equalsIgnoreCase("topGroupMillisTime"))
-			return CMLib.english().returnTime(topGroupMillis,0);
+			return CMLib.english().stringifyElapsedTimeOrTicks(topGroupMillis,0);
 		else
 		if(itemCode.equalsIgnoreCase("topGroupMillisTimePlusAverage"))
-			return CMLib.english().returnTime(topGroupMillis,topGroupTicks);
+			return CMLib.english().stringifyElapsedTimeOrTicks(topGroupMillis,topGroupTicks);
 		else
 		if(itemCode.equalsIgnoreCase("topGroupTicks"))
 			return ""+topGroupTicks;
@@ -730,10 +735,10 @@ public class ServiceEngine implements ThreadEngine
 			return ""+topObjectMillis;
 		else
 		if(itemCode.equalsIgnoreCase("topObjectMillisTime"))
-			return CMLib.english().returnTime(topObjectMillis,0);
+			return CMLib.english().stringifyElapsedTimeOrTicks(topObjectMillis,0);
 		else
 		if(itemCode.equalsIgnoreCase("topObjectMillisTimePlusAverage"))
-			return CMLib.english().returnTime(topObjectMillis,topObjectTicks);
+			return CMLib.english().stringifyElapsedTimeOrTicks(topObjectMillis,topObjectTicks);
 		else
 		if(itemCode.equalsIgnoreCase("topObjectTicks"))
 			return ""+topObjectTicks;
@@ -767,11 +772,11 @@ public class ServiceEngine implements ThreadEngine
 						if(instrCode.equalsIgnoreCase("name"))
 							return ""+serviceClient.getName();
 						if(instrCode.equalsIgnoreCase("MilliTotalTime"))
-							return CMLib.english().returnTime(serviceClient.getMilliTotal(),0);
+							return CMLib.english().stringifyElapsedTimeOrTicks(serviceClient.getMilliTotal(),0);
 						if(instrCode.equalsIgnoreCase("MiliTotalTime"))
-							return CMLib.english().returnTime(serviceClient.getMilliTotal(),0);
+							return CMLib.english().stringifyElapsedTimeOrTicks(serviceClient.getMilliTotal(),0);
 						if(instrCode.equalsIgnoreCase("MilliTotalTimePlusAverage")||instrCode.equalsIgnoreCase("MiliTotalTimePlusAverage"))
-							return CMLib.english().returnTime(serviceClient.getMilliTotal(),serviceClient.getTickTotal());
+							return CMLib.english().stringifyElapsedTimeOrTicks(serviceClient.getMilliTotal(),serviceClient.getTickTotal());
 						if(instrCode.equalsIgnoreCase("TickTotal"))
 							return ""+serviceClient.getTickTotal();
 						break;
@@ -1139,8 +1144,8 @@ public class ServiceEngine implements ThreadEngine
 		if(which.toLowerCase().startsWith("tickerlastduration"))
 		{
 			if(C.getLastStopTime()>=C.getLastStartTime())
-				return CMLib.english().returnTime(C.getLastStopTime()-C.getLastStartTime(),0);
-			return CMLib.english().returnTime(System.currentTimeMillis()-C.getLastStartTime(),0);
+				return CMLib.english().stringifyElapsedTimeOrTicks(C.getLastStopTime()-C.getLastStartTime(),0);
+			return CMLib.english().stringifyElapsedTimeOrTicks(System.currentTimeMillis()-C.getLastStartTime(),0);
 		}
 		else
 		if(which.toLowerCase().startsWith("tickersuspended"))

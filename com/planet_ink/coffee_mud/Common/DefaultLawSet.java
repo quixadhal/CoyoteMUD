@@ -413,7 +413,7 @@ public class DefaultLawSet implements Law
 			for(final String owner : owners.keySet())
 			{
 				MOB responsibleMob=null;
-				final Clan C=CMLib.clans().getClan(owner);
+				final Clan C=CMLib.clans().getClanExact(owner);
 				if(C!=null)
 					responsibleMob=C.getResponsibleMember();
 				else
@@ -487,7 +487,7 @@ public class DefaultLawSet implements Law
 								T.setBackTaxes((int)Math.round(oldBackTaxes+owedOnThisLand));
 								if(CMath.div(T.getPrice(),T.backTaxes())<2.0)
 								{
-									final Clan clanC=CMLib.clans().getClan(T.getOwnerName());
+									final Clan clanC=CMLib.clans().getClanExact(T.getOwnerName());
 									if(clanC!=null)
 									{
 										final MOB M=clanC.getResponsibleMember();
@@ -525,7 +525,7 @@ public class DefaultLawSet implements Law
 						}
 						if(owesButNotConfiscated)
 						{
-							final Clan clanC=CMLib.clans().getClan(owner);
+							final Clan clanC=CMLib.clans().getClanExact(owner);
 							if(clanC!=null)
 							{
 								final MOB M=clanC.getResponsibleMember();
@@ -548,7 +548,7 @@ public class DefaultLawSet implements Law
 							}
 							else
 							{
-								notifyPlayer(owner,"",owed,"",A.Name()+"Taxes Owed by @x1 on @x3.",
+								notifyPlayer(owner,"",owed,"",A.Name()+" Taxes Owed by @x1 on @x3.",
 										"@x1 owes @x2 in back taxes to "+A.Name()+".  Sufficient were not found in a local bank account.  "
 												+ "Failure to pay could result in loss of property.");
 							}
@@ -596,7 +596,7 @@ public class DefaultLawSet implements Law
 						&&(evasionBits[Law.BIT_CRIMENAME].length()>0)
 						&&(responsibleMob!=null))
 						{
-							while(getWarrant(responsibleMob,evasionBits[Law.BIT_CRIMENAME],true,debugging)!=null)
+							while(removeWarrant(responsibleMob,evasionBits[Law.BIT_CRIMENAME],debugging)!=null)
 							{
 							}
 						}
@@ -889,10 +889,8 @@ public class DefaultLawSet implements Law
 
 	public LegalWarrant getWarrant(final MOB criminal,
 								   final String crime,
-								   final boolean pull,
 								   final boolean debugging)
 	{
-		LegalWarrant W=null;
 		for(int i=0;i<warrants.size();i++)
 		{
 			final LegalWarrant W2=warrants.elementAt(i);
@@ -900,14 +898,32 @@ public class DefaultLawSet implements Law
 			&&(W2.crime().equals(crime))
 			&&(legalDetails.isStillACrime(W2,debugging)))
 			{
-				W=W2;
-				if(pull)
-					warrants.removeElement(W2);
-				break;
+				return W2;
 			}
 		}
-		return W;
+		return null;
 	}
+
+
+
+	public LegalWarrant removeWarrant(final MOB criminal,
+									  final String crime,
+									  final boolean debugging)
+	{
+		for(int i=0;i<warrants.size();i++)
+		{
+			final LegalWarrant W2=warrants.elementAt(i);
+			if((W2.criminal()==criminal)
+			&&(W2.crime().equals(crime))
+			&&(legalDetails.isStillACrime(W2,debugging)))
+			{
+				warrants.removeElement(W2);
+				return W2;
+			}
+		}
+		return null;
+	}
+
 
 	@Override
 	public LegalWarrant getCopkiller(final Area A, final LegalBehavior behav, final MOB mob)

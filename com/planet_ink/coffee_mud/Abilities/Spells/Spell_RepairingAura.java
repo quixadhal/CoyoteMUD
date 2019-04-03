@@ -119,7 +119,9 @@ public class Spell_RepairingAura extends Spell
 		final Physical target=getAnyTarget(mob,commands,givenTarget,Wearable.FILTER_ANY);
 		if(target==null)
 			return false;
-		if(target.fetchEffect(this.ID())!=null)
+		if((target.fetchEffect(this.ID())!=null)
+		||(target.fetchEffect("Spell_ImprovedRepairingAura")!=null)
+		||(target.fetchEffect("Spell_MassRepairingAura")!=null))
 		{
 			mob.tell(L("@x1 is already repairing!",target.name(mob)));
 			return false;

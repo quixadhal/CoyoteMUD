@@ -61,7 +61,12 @@ public class FactionData extends StdWebMacro
 
 		String last=httpReq.getUrlParameter("FACTION");
 		if(last==null)
-			return " @break@";
+		{
+			if(parms.containsKey("FACTION"))
+				last=parms.get("FACTION");
+			if(last == null)
+				return " @break@";
+		}
 		if(last.length()>0)
 		{
 			final String newFactionID=httpReq.getUrlParameter("NEWFACTION");
@@ -403,6 +408,18 @@ public class FactionData extends StdWebMacro
 					{
 						final Ability A=e.nextElement();
 						str.append("<OPTION VALUE=\""+A.ID()+"\">"+CMStrings.limit(A.ID(),20));
+					}
+					final Set<String> socDone = new HashSet<String>();
+					final XMLLibrary xml=CMLib.xml();
+					for (final Enumeration<Social> s=CMLib.socials().getAllSocials();s.hasMoreElements();)
+					{
+						final Social S=s.nextElement();
+						str.append("<OPTION VALUE=\""+xml.parseOutAngleBrackets(S.name())+"\">"+CMStrings.limit("Soc: "+xml.parseOutAngleBrackets(CMStrings.capitalizeAndLower(S.name())),20));
+						if(!socDone.contains(S.baseName()))
+						{
+							socDone.add(S.baseName());
+							str.append("<OPTION VALUE=\""+S.baseName()+" *\">"+CMStrings.limit("Soc: "+CMStrings.capitalizeAndLower(S.baseName()+" *"),20));
+						}
 					}
 					str.append("</SELECT>");
 					str.append("<BR>");

@@ -94,11 +94,10 @@ public class Paladin_Breakup extends StdAbility
 			mob.tell(L("You must end combat before trying to break up someone elses fight."));
 			return false;
 		}
-		if((!auto)&&(!(CMLib.flags().isGood(mob))))
-		{
-			mob.tell(L("You don't feel worthy of a such a good act."));
+
+		if(!PaladinSkill.paladinAlignmentCheck(this, mob, auto))
 			return false;
-		}
+
 		final MOB target=this.getTarget(mob,commands,givenTarget);
 		if(target==null)
 			return false;

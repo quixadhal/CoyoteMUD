@@ -32,7 +32,6 @@ import java.util.*;
    See the License for the specific language governing permissions and
    limitations under the License.
 */
-@SuppressWarnings({"unchecked","rawtypes"})
 public class Who extends StdCommand
 {
 	public Who()
@@ -47,6 +46,7 @@ public class Who extends StdCommand
 		return access;
 	}
 
+	@SuppressWarnings("rawtypes")
 	private final static Class[][]	filterParameters	= new Class[][] { { Boolean.class, Filterer.class } };
 
 	public int[] getShortColWidths(final MOB seer)
@@ -245,6 +245,14 @@ public class Who extends StdCommand
 			return false;
 		}
 
+		if((mobName!=null)
+		&&(mob!=null)
+		&&(mobName.length()>0)
+		&&(friends==null))
+		{
+
+		}
+
 		final String msg = getWho(mob,friends,mobName!=null,null);
 		if((mobName!=null)&&(msg.length()==0))
 			mob.tell(L("That person doesn't appear to be online.\n\r"));
@@ -253,6 +261,7 @@ public class Who extends StdCommand
 		return false;
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public Object executeInternal(final MOB mob, final int metaFlags, final Object... args) throws java.io.IOException
 	{
@@ -260,7 +269,7 @@ public class Who extends StdCommand
 			return getWho(mob,null,false,null);
 		else
 		if(super.checkArguments(filterParameters, args))
-			return getWho(mob,null,((Boolean)args[0]).booleanValue(),(Filterer)args[1]);
+			return getWho(mob,null,((Boolean)args[0]).booleanValue(),(Filterer<MOB>)args[1]);
 		return Boolean.FALSE;
 	}
 

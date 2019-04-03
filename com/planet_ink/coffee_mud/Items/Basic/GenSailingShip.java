@@ -5,6 +5,7 @@ import com.planet_ink.coffee_mud.core.interfaces.*;
 import com.planet_ink.coffee_mud.core.interfaces.ItemPossessor.Expire;
 import com.planet_ink.coffee_mud.core.interfaces.ItemPossessor.Move;
 import com.planet_ink.coffee_mud.core.*;
+import com.planet_ink.coffee_mud.core.CMProps.Int;
 import com.planet_ink.coffee_mud.core.collections.*;
 import com.planet_ink.coffee_mud.core.exceptions.CMException;
 import com.planet_ink.coffee_mud.Abilities.interfaces.*;
@@ -59,6 +60,7 @@ public class GenSailingShip extends StdBoardable implements SailingShip
 	protected PairList<Item, int[]>		coordinates			= null;
 	protected PairList<Weapon, int[]>	aimings				= new PairVector<Weapon, int[]>();
 	protected List<Item>				smallTenderRequests	= new SLinkedList<Item>();
+	protected volatile Room				prevItemRoom		= null;
 
 	protected int					maxHullPoints	= -1;
 	protected volatile int			lastSpamCt		= 0;
@@ -84,10 +86,13 @@ public class GenSailingShip extends StdBoardable implements SailingShip
 	public void recoverPhyStats()
 	{
 		super.recoverPhyStats();
-		if(usesRemaining()>0)
-			phyStats().setDisposition(phyStats().disposition()|PhyStats.IS_SWIMMING);
-		else
-			phyStats().setDisposition(phyStats().disposition()|PhyStats.IS_FALLING);
+		if(owner instanceof Room)
+		{
+			if(usesRemaining()>0)
+				phyStats().setDisposition(phyStats().disposition()|PhyStats.IS_SWIMMING);
+			else
+				phyStats().setDisposition(phyStats().disposition()|PhyStats.IS_FALLING);
+		}
 	}
 
 	@Override
@@ -417,6 +422,8 @@ public class GenSailingShip extends StdBoardable implements SailingShip
 						try
 						{
 							mob.setRiding(this);
+							if(getOwnerObject() instanceof Clan)
+								mob.setClan(getOwnerObject().name(), ((Clan)getOwnerObject()).getAutoPosition());
 							mob.basePhyStats().setDisposition(mob.basePhyStats().disposition()|PhyStats.IS_SWIMMING);
 							mob.phyStats().setDisposition(mob.phyStats().disposition()|PhyStats.IS_SWIMMING);
 							if(otherShip.tenderShip == this)
@@ -1402,6 +1409,8 @@ public class GenSailingShip extends StdBoardable implements SailingShip
 			try
 			{
 				mob.setRiding(this);
+				if(getOwnerObject() instanceof Clan)
+					mob.setClan(getOwnerObject().name(), ((Clan)getOwnerObject()).getAutoPosition());
 				mob.basePhyStats().setDisposition(mob.basePhyStats().disposition()|PhyStats.IS_SWIMMING);
 				mob.phyStats().setDisposition(mob.phyStats().disposition()|PhyStats.IS_SWIMMING);
 				final CMMsg maneuverMsg=CMClass.getMsg(mob,I,null,CMMsg.MSG_ADVANCE,null,CMMsg.MASK_MALICIOUS|CMMsg.MSG_ADVANCE,null,CMMsg.MSG_ADVANCE,L("<S-NAME> engage(s) @x1.",I.Name()));
@@ -1680,6 +1689,8 @@ public class GenSailingShip extends StdBoardable implements SailingShip
 						try
 						{
 							mob.setRiding(this);
+							if(getOwnerObject() instanceof Clan)
+								mob.setClan(getOwnerObject().name(), ((Clan)getOwnerObject()).getAutoPosition());
 							mob.basePhyStats().setDisposition(mob.basePhyStats().disposition()|PhyStats.IS_SWIMMING);
 							mob.phyStats().setDisposition(mob.phyStats().disposition()|PhyStats.IS_SWIMMING);
 							combatRoom.show(mob, this, CMMsg.MSG_ACTIVATE|CMMsg.MASK_MALICIOUS, null);
@@ -1745,6 +1756,8 @@ public class GenSailingShip extends StdBoardable implements SailingShip
 					try
 					{
 						mob.setRiding(this);
+						if(getOwnerObject() instanceof Clan)
+							mob.setClan(getOwnerObject().name(), ((Clan)getOwnerObject()).getAutoPosition());
 						mob.basePhyStats().setDisposition(mob.basePhyStats().disposition()|PhyStats.IS_SWIMMING);
 						mob.phyStats().setDisposition(mob.phyStats().disposition()|PhyStats.IS_SWIMMING);
 						int notLoaded = 0;
@@ -1855,7 +1868,7 @@ public class GenSailingShip extends StdBoardable implements SailingShip
 	public static void appendCondition(final StringBuilder visualCondition, final double pct, final String name)
 	{
 		if(pct<=0.0)
-			visualCondition.append(staticL("\n\r^r@x1^r is SINKING!^N",name));
+			visualCondition.append(staticL("\n\r^r@x1^r is nothing but wreckage!^N",name));
 		else
 		if(pct<.10)
 			visualCondition.append(staticL("\n\r^r@x1^r is near destruction!^N",name));
@@ -1914,9 +1927,61 @@ public class GenSailingShip extends StdBoardable implements SailingShip
 		case CMMsg.TYP_COMMAND:
 			break;
 		default:
-			if((msg.source().riding()==this)
-			||(msg.othersMessage()==null)
-			)
+			if(msg.source().riding()==this)
+			{
+				sendAreaMessage(msg, true);
+				final ItemPossessor owner = owner();
+				if((owner instanceof Room)
+				&&(owner != prevItemRoom)
+				&&(this.area instanceof BoardableShip))
+				{
+					final Room R = (Room)owner;
+					boolean fixSky=false;
+					final Room oldR;
+					synchronized(this)
+					{
+						oldR=this.prevItemRoom;
+						fixSky = ((R!=oldR)&&(oldR!=null));
+						if(oldR!=R)
+							this.prevItemRoom=R;
+					}
+					if(fixSky)
+					{
+						final boolean wasWater=CMLib.flags().isUnderWateryRoom(oldR);
+						final boolean isWater=CMLib.flags().isUnderWateryRoom(R);
+						final boolean isSunk = isWater && (R.getGridParent()!=null) && (R.getGridParent().roomID().length()==0);
+						if(wasWater || isSunk)
+						{
+							for(final Enumeration<Room> r=area.getProperMap();r.hasMoreElements();)
+							{
+								final Room inR=r.nextElement();
+								if(((inR.domainType()&Room.INDOORS)==0)
+								&&(inR.roomID().length()>0))
+								{
+									inR.clearSky();
+									if(isSunk)
+									{
+										if((inR.getRoomInDir(Directions.UP)==null)
+										&&(inR.getExitInDir(Directions.UP)==null))
+										{
+											inR.giveASky(0);
+											final Exit redirExit = CMClass.getExit("NamedRedirectable");
+											redirExit.setDisplayText(R.displayText());
+											redirExit.setDescription(R.displayText());
+											redirExit.lastRoomUsedFrom(R);
+											inR.setRawExit(Directions.UP, redirExit);
+										}
+									}
+									else
+										inR.giveASky(0);
+								}
+							}
+						}
+					}
+				}
+			}
+			else
+			if(msg.othersMessage()==null)
 				sendAreaMessage(msg, true);
 			else
 			{
@@ -1954,6 +2019,7 @@ public class GenSailingShip extends StdBoardable implements SailingShip
 						public void run()
 						{
 							msg.source().tell(visualCondition.toString());
+							msg.trailerRunnables().remove(this);
 						}
 					});
 				}
@@ -2190,20 +2256,22 @@ public class GenSailingShip extends StdBoardable implements SailingShip
 	}
 
 	@Override
+	public void setExpirationDate(final long time)
+	{
+		// necessary because stdboardable protects its space ships in rooms
+		this.dispossessionTime=time;
+	}
+
+	@Override
 	public long expirationDate()
 	{
 		final Room R=CMLib.map().roomLocation(this);
 		if(R==null)
-			dispossessionTime = 0;
-		else
-		if(CMLib.flags().isUnderWateryRoom(R))
-		{
-			if(dispossessionTime == 0)
-				dispossessionTime = System.currentTimeMillis()+(CMProps.getIntVar(CMProps.Int.EXPIRE_PLAYER_DROP) * TimeManager.MILI_MINUTE);
-		}
-		else
-			dispossessionTime = 0;
-		return dispossessionTime;
+			return 0;
+		if((!CMLib.flags().isUnderWateryRoom(R))
+		&&(this.usesRemaining()>0))
+			return 0;
+		return super.expirationDate();
 	}
 
 	@Override
@@ -2408,6 +2476,8 @@ public class GenSailingShip extends StdBoardable implements SailingShip
 				try
 				{
 					mob.setRiding(this);
+					if(getOwnerObject() instanceof Clan)
+						mob.setClan(getOwnerObject().name(), ((Clan)getOwnerObject()).getAutoPosition());
 					mob.basePhyStats().setDisposition(mob.basePhyStats().disposition()|PhyStats.IS_SWIMMING);
 					mob.phyStats().setDisposition(mob.phyStats().disposition()|PhyStats.IS_SWIMMING);
 					if(directionFacing == direction)
@@ -2480,6 +2550,8 @@ public class GenSailingShip extends StdBoardable implements SailingShip
 				final Exit opExit=thisRoom.getExitInDir(oppositeDirectionFacing);
 				final MOB mob = CMClass.getFactoryMOB(name(),phyStats().level(),CMLib.map().roomLocation(this));
 				mob.setRiding(this);
+				if(getOwnerObject() instanceof Clan)
+					mob.setClan(getOwnerObject().name(), ((Clan)getOwnerObject()).getAutoPosition());
 				mob.basePhyStats().setDisposition(mob.basePhyStats().disposition()|PhyStats.IS_SWIMMING);
 				mob.phyStats().setDisposition(mob.phyStats().disposition()|PhyStats.IS_SWIMMING);
 				try

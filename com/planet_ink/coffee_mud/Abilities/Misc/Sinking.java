@@ -260,6 +260,11 @@ public class Sinking extends StdAbility
 				if((item instanceof Rideable)&&(item instanceof BoardableShip))
 				{
 					mob = CMClass.getFactoryMOB(item.name(),item.phyStats().level(),room);
+					if(item instanceof PrivateProperty)
+					{
+						if(((PrivateProperty)item).getOwnerObject() instanceof Clan)
+							mob.setClan(((PrivateProperty)item).getOwnerObject().name(), ((Clan)((PrivateProperty)item).getOwnerObject()).getAutoPosition());
+					}
 					mob.setRiding((Rideable)item);
 				}
 				else
@@ -267,7 +272,13 @@ public class Sinking extends StdAbility
 				try
 				{
 					room.show(mob,null,item,CMMsg.MSG_OK_ACTION,L("<O-NAME> sinks @x1.",addStr));
-					nextRoom.moveItemTo(item,ItemPossessor.Expire.Player_Drop);
+					final ItemPossessor.Expire expire;
+					if((item instanceof PrivateProperty)
+					&&(((PrivateProperty)item).getOwnerName().length()>0))
+						expire = ItemPossessor.Expire.Player_Drop;
+					else
+						expire = ItemPossessor.Expire.Monster_Body;
+					nextRoom.moveItemTo(item,expire);
 					room=nextRoom;
 					nextRoom.show(mob,null,item,CMMsg.MSG_OK_ACTION,L("<O-NAME> sinks in from @x1.",(reversed()?L("below"):L("above"))));
 					return true;

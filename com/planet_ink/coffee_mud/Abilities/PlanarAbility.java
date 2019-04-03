@@ -85,12 +85,17 @@ public class PlanarAbility extends StdAbility
 	protected String					planarPrefix	= null;
 	protected List<Pair<String, String>>behavList		= null;
 	protected List<Pair<String, String>>reffectList		= null;
+	protected List<Pair<String, String>>factionList		= null;
 	protected int						bonusDmgStat	= -1;
 	protected Set<String>				reqWeapons		= null;
 	protected int						recoverRate		= 0;
 	protected int						fatigueRate		= 0;
 	protected volatile int				recoverTick		= 0;
 	protected Set<PlanarSpecFlag>		specFlags		= null;
+	protected int						hardBumpLevel	= 0;
+	protected final Map<String,long[]>	recentVisits	= new TreeMap<String,long[]>();
+
+	protected final static long			hardBumpTimeout	= (60L * 60L * 1000L);
 
 	protected Pair<Pair<Integer,Integer>,List<Pair<String,String>>> enableList=null;
 
@@ -126,7 +131,8 @@ public class PlanarAbility extends StdAbility
 		ELITE,
 		ROOMCOLOR,
 		ROOMADJS,
-		AREAEMOTER
+		AREAEMOTER,
+		FACTIONS
 	}
 
 	public static enum PlanarSpecFlag
@@ -148,6 +154,7 @@ public class PlanarAbility extends StdAbility
 		this.behavList=null;
 		this.enableList=null;
 		this.reffectList=null;
+		this.factionList=null;
 		bonusDmgStat=-1;
 		this.reqWeapons=null;
 		this.recoverTick=-1;
@@ -212,6 +219,9 @@ public class PlanarAbility extends StdAbility
 			final String reffects = planeVars.get(PlanarVar.REFFECT.toString());
 			if(reffects!=null)
 				this.reffectList=CMParms.parseSpaceParenList(reffects);
+			final String factions = planeVars.get(PlanarVar.FACTIONS.toString());
+			if(factions!=null)
+				this.factionList=CMParms.parseSpaceParenList(factions);
 			final String enables = planeVars.get(PlanarVar.ENABLE.toString());
 			if(enables!=null)
 			{
@@ -602,12 +612,42 @@ public class PlanarAbility extends StdAbility
 					}
 					M.basePhyStats().setLevel(newLevel);
 					M.phyStats().setLevel(newLevel);
-					CMLib.leveler().fillOutMOB(M,M.basePhyStats().level());
+					CMLib.leveler().fillOutMOB(M,M.basePhyStats().level()+hardBumpLevel);
+					M.basePhyStats().setLevel(newLevel);
+					M.phyStats().setLevel(newLevel);
 					final String align=planeVars.get(PlanarVar.ALIGNMENT.toString());
 					if(align!=null)
 					{
-						M.removeFaction(CMLib.factions().AlignID());
-						M.addFaction(CMLib.factions().AlignID(), CMath.s_int(align));
+						M.removeFaction(CMLib.factions().getAlignmentID());
+						M.addFaction(CMLib.factions().getAlignmentID(), CMath.s_int(align));
+					}
+					if(this.factionList!=null)
+					{
+						for(final Pair<String,String> p : this.factionList)
+						{
+							Faction F=null;
+							if(CMLib.factions().isFactionID(p.first))
+								F=CMLib.factions().getFaction(p.first);
+							if(F==null)
+								F=CMLib.factions().getFactionByName(p.first);
+							if(F!=null)
+							{
+								if(CMath.isInteger(p.second))
+								{
+									M.removeFaction(F.factionID());
+									M.addFaction(F.factionID(), CMath.s_int(p.second));
+								}
+								else
+								{
+									final Faction.FRange FR = F.fetchRange(p.second);
+									if(FR != null)
+									{
+										M.removeFaction(F.factionID());
+										M.addFaction(F.factionID(), FR.random());
+									}
+								}
+							}
+						}
 					}
 					for(final Enumeration<Item> mi=M.items();mi.hasMoreElements();)
 					{
@@ -634,6 +674,9 @@ public class PlanarAbility extends StdAbility
 					final String resistWeak = planeVars.get(PlanarVar.MOBRESIST.toString());
 					if(resistWeak != null)
 						reEffect(M,"Prop_Resistance",resistWeak);
+					else
+					if(this.hardBumpLevel>0)
+						reEffect(M,"Prop_Resistance","magic holy disease poison evil weapons "+(5*hardBumpLevel)+"% ");
 					final String setStat = planeVars.get(PlanarVar.SETSTAT.toString());
 					if(setStat != null)
 						reEffect(M,"Prop_StatTrainer",setStat);
@@ -672,9 +715,11 @@ public class PlanarAbility extends StdAbility
 						{
 						case 1:
 							reEffect(M,"Prop_Adjuster", "multiplych=true hitpoints+300 multiplyph=true attack+150 damage+150 armor+115 ALLSAVES+15");
+							reEffect(M,"Prop_ShortEffects", "");
 							break;
 						default:
 							reEffect(M,"Prop_Adjuster", "multiplych=true hitpoints+600 multiplyph=true attack+150 damage+150 armor+115 ALLSAVES+15");
+							reEffect(M,"Prop_ShortEffects", "");
 							break;
 						}
 						reEffect(M,"Prop_ModExperience","*2");
@@ -1018,7 +1063,9 @@ public class PlanarAbility extends StdAbility
 					final Map<String,String> planeParms = CMParms.parseEQParms(line);
 					for(final String key : planeParms.keySet())
 					{
-						if(CMath.s_valueOf(PlanarVar.class, key)==null)
+						if((CMath.s_valueOf(PlanarVar.class, key)==null)
+						&&(CMLib.factions().getFaction(key)==null)
+						&&(CMLib.factions().getFactionByName(key)==null))
 							Log.errOut("Spell_Planeshift","Unknown planar var: "+key);
 					}
 					planeParms.put(PlanarVar.ID.toString(), planename);
@@ -1445,6 +1492,21 @@ public class PlanarAbility extends StdAbility
 			planeFound = getPlane(planeName);
 		}
 
+		final String planeCodeString = planeName + "_" + cloneArea.Name();
+		int hardBumpLevel = 0;
+		if(recentVisits.containsKey(planeCodeString)
+		&&((recentVisits.get(planeCodeString)[0]+hardBumpTimeout)>System.currentTimeMillis()))
+		{
+			final long[] data = this.recentVisits.get(planeCodeString);
+			data[0]=System.currentTimeMillis();
+			if(data[1]==0)
+				data[1]++;
+			else
+				data[1]*=2;
+			hardBumpLevel=(int)data[1];
+		}
+		else
+			this.recentVisits.put(planeCodeString, new long[] {System.currentTimeMillis(),0});
 		final String newPlaneName = planeIDNum.addAndGet(1)+"_"+cloneArea.Name();
 		final Area planeArea = CMClass.getAreaType("SubThinInstance");
 		planeArea.setName(newPlaneName);
@@ -1471,8 +1533,12 @@ public class PlanarAbility extends StdAbility
 				return false;
 
 			this.lastCasting=System.currentTimeMillis();
-			final Ability A=this.beneficialAffect(mob, planeArea, asLevel, 0);
-			A.setMiscText(planeName);
+			final PlanarAbility A=(PlanarAbility)this.beneficialAffect(mob, planeArea, asLevel, 0);
+			if(A!=null)
+			{
+				A.hardBumpLevel = hardBumpLevel;
+				A.setMiscText(planeName);
+			}
 
 			final Room thisRoom=mob.location();
 			for (final MOB follower : h)

@@ -35,7 +35,6 @@ import java.util.*;
    See the License for the specific language governing permissions and
    limitations under the License.
 */
-@SuppressWarnings({"unchecked","rawtypes"})
 public class StdAbility implements Ability
 {
 	@Override
@@ -56,7 +55,7 @@ public class StdAbility implements Ability
 	protected long 				lastCastHelp	= 0;
 	protected boolean 			amDestroyed		= false;
 
-	private static final int[] STATIC_USAGE_NADA= new int[3];
+	private static final int[] STATIC_USAGE_NADA= new int[Ability.USAGEINDEX_TOTAL];
 
 	public StdAbility()
 	{
@@ -185,6 +184,11 @@ public class StdAbility implements Ability
 
 	@Override
 	public boolean bubbleAffect()
+	{
+		return false;
+	}
+
+	protected boolean ignoreCompounding()
 	{
 		return false;
 	}
@@ -778,16 +782,17 @@ public class StdAbility implements Ability
 		return false;
 	}
 
-	protected MOB getTarget(final MOB mob, final List commands, final Environmental givenTarget)
+	protected MOB getTarget(final MOB mob, final List<String> commands, final Environmental givenTarget)
 	{
 		return getTarget(mob,commands,givenTarget,false,false);
 	}
 
-	protected MOB getTarget(final MOB mob, final List commands, final Environmental givenTarget, final boolean quiet, final boolean alreadyAffOk)
+	protected MOB getTarget(final MOB mob, final List<String> commands, final Environmental givenTarget, final boolean quiet, final boolean alreadyAffOk)
 	{
 		String targetName=CMParms.combine(commands,0);
 		MOB target=null;
-		if((givenTarget!=null)&&(givenTarget instanceof MOB))
+		if((givenTarget!=null)
+		&&(givenTarget instanceof MOB))
 			target=(MOB)givenTarget;
 		else
 		if(targetName.length()==0)
@@ -1293,7 +1298,7 @@ public class StdAbility implements Ability
 
 	protected int[] buildCostArray(final MOB mob, final int consumed, int minimum)
 	{
-		final int[] usageCosts=new int[3];
+		final int[] usageCosts=new int[Ability.USAGEINDEX_TOTAL];
 		int costDown=0;
 		if(consumed>2)
 		{
@@ -1378,6 +1383,7 @@ public class StdAbility implements Ability
 
 	protected Map<String, int[]> getHardOverrideManaCache()
 	{
+		@SuppressWarnings("unchecked")
 		Map<String,int[]> hardOverrideCache	= (Map<String,int[]>)Resources.getResource("SYSTEM_ABLEUSAGE_HARD_OVERRIDE_CACHE");
 		if(hardOverrideCache == null)
 		{
@@ -1395,7 +1401,7 @@ public class StdAbility implements Ability
 			final Map<String,int[]> overrideCache=getHardOverrideManaCache();
 			if(!overrideCache.containsKey(ID()))
 			{
-				final int[] usage=new int[3];
+				final int[] usage=new int[Ability.USAGEINDEX_TOTAL];
 				Arrays.fill(usage,overrideMana());
 				overrideCache.put(ID(), usage);
 			}
@@ -1591,7 +1597,45 @@ public class StdAbility implements Ability
 				return false;
 			}
 
-			final int[] consumed=usageCost(mob,false);
+			int[] consumed=usageCost(mob,false);
+			final int[] timeCache;
+			final int nowLSW = (int)(System.currentTimeMillis()&0x7FFFFFFF);
+			final int compoundTicks=CMProps.getIntVar(CMProps.Int.MANACOMPOUND_TICKS);
+			if((compoundTicks > 0)
+			&&(consumed != STATIC_USAGE_NADA))
+			{
+				final int[][] abilityUsageCache=mob.getAbilityUsageCache(ID());
+				if(abilityUsageCache[Ability.CACHEINDEX_LASTTIME] == null)
+					abilityUsageCache[Ability.CACHEINDEX_LASTTIME] = new int[USAGEINDEX_TOTAL];
+				timeCache = abilityUsageCache[Ability.CACHEINDEX_LASTTIME];
+				final int numTicksSinceLastCast=(int)((nowLSW-timeCache[USAGEINDEX_TIMELSW]) / CMProps.getTickMillis());
+				if((numTicksSinceLastCast >= compoundTicks)||(ignoreCompounding()))
+					timeCache[USAGEINDEX_COUNT]=0;
+				else
+				{
+					consumed=Arrays.copyOf(consumed, consumed.length);
+					final double pctPenalty = CMath.div(CMProps.getIntVar(CMProps.Int.MANACOMPOUND_PCTPENALTY), 100.0);
+					final double amtPenalty = CMProps.getIntVar(CMProps.Int.MANACOMPOUND_AMTPENALTY);
+					for(int usageIndex = 0 ; usageIndex < Ability.USAGEINDEX_TOTAL; usageIndex++)
+					{
+						if(consumed[usageIndex]>0)
+						{
+							double newAmt=consumed[usageIndex];
+							for(int ct=0;ct<timeCache[USAGEINDEX_COUNT];ct++)
+							{
+								if(newAmt<Short.MAX_VALUE)
+								{
+									newAmt+=amtPenalty;
+									newAmt+=CMath.mul(newAmt, pctPenalty);
+								}
+							}
+							consumed[usageIndex]=(int)Math.round(Math.ceil(newAmt));
+						}
+					}
+				}
+			}
+			else
+				timeCache=null;
 			if(mob.curState().getMana()<consumed[Ability.USAGEINDEX_MANA])
 			{
 				if(mob.maxState().getMana()==consumed[Ability.USAGEINDEX_MANA])
@@ -1633,6 +1677,11 @@ public class StdAbility implements Ability
 			}
 			if(!checkComponents(mob))
 				return false;
+			if(timeCache!=null)
+			{
+				timeCache[USAGEINDEX_COUNT]++;
+				timeCache[USAGEINDEX_TIMELSW]=nowLSW;
+			}
 			mob.curState().adjMana(-consumed[0],mob.maxState());
 			mob.curState().adjMovement(-consumed[1],mob.maxState());
 			mob.curState().adjHitPoints(-consumed[2],mob.maxState());
@@ -1679,7 +1728,7 @@ public class StdAbility implements Ability
 		&&(CMLib.flags().isInTheGame((MOB)givenTarget,true)))
 		{
 			if(h==null)
-				h=new SHashSet();
+				h=new SHashSet<MOB>();
 			if(!h.contains(givenTarget))
 				h.add((MOB)givenTarget);
 		}
@@ -2321,9 +2370,11 @@ public class StdAbility implements Ability
 	@Override
 	public boolean appropriateToMyFactions(final MOB mob)
 	{
-		for(final Enumeration e=mob.factions();e.hasMoreElements();)
+		if(mob == null)
+			return true;
+		for(final Enumeration<String> e=mob.factions();e.hasMoreElements();)
 		{
-			final String factionID=(String)e.nextElement();
+			final String factionID=e.nextElement();
 			final Faction F=CMLib.factions().getFaction(factionID);
 			if((F!=null)&&F.hasUsage(this))
 				return F.canUse(mob,this);

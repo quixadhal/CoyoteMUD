@@ -133,7 +133,8 @@ public class BuildingSkill extends CraftingSkill implements CraftorAbility
 		WATERSURFACEONLY,
 		UNDERWATERONLY,
 		SALTWATER,
-		FRESHWATER
+		FRESHWATER,
+		UPONLY
 	}
 
 	protected Room		room				= null;
@@ -181,7 +182,6 @@ public class BuildingSkill extends CraftingSkill implements CraftorAbility
 	@Override
 	public String getDecodedComponentsDescription(final MOB mob, final List<String> recipe)
 	{
-		// TODO Auto-generated method stub
 		return null;
 	}
 
@@ -647,7 +647,7 @@ public class BuildingSkill extends CraftingSkill implements CraftorAbility
 		return R;
 	}
 
-	protected void buildDoor(final String[] recipe, Room room, final int dir)
+	protected void buildDoor(final String[] recipe, Room room, final int dir, final int recipeLevel)
 	{
 		synchronized(("SYNC"+room.roomID()).intern())
 		{
@@ -689,6 +689,7 @@ public class BuildingSkill extends CraftingSkill implements CraftorAbility
 			if(X.defaultsClosed() && X.hasADoor())
 				X.setDoorsNLocks(X.hasADoor(), !X.defaultsClosed(), X.defaultsClosed(), X.hasALock(), X.hasALock(), X.defaultsLocked());
 			addEffects(X, room.getRoomInDir(dir),spells);
+			X.basePhyStats().setLevel(recipeLevel);
 			X.recoverPhyStats();
 			X.text();
 			room.setRawExit(dir,X);
@@ -782,12 +783,17 @@ public class BuildingSkill extends CraftingSkill implements CraftorAbility
 				newRoom.addNonUninvokableEffect((Ability)newTitle);
 			}
 
-			int newFloorNum = (floor+1);
-			int curFloorNum = floor;
+			int newFloorNum;
+			int curFloorNum;
 			if(dir == Directions.DOWN)
 			{
 				newFloorNum = floor;
 				curFloorNum = (floor - 1);
+			}
+			else
+			{
+				newFloorNum = (floor+1);
+				curFloorNum = floor;
 			}
 
 			final Exit newExit;
@@ -836,6 +842,26 @@ public class BuildingSkill extends CraftingSkill implements CraftorAbility
 			CMLib.database().DBCreateRoom(newRoom);
 			if(newTitle!=null)
 			{
+				if(newTitle.gridLayout())
+				{
+					final PairVector<Room,int[]> rooms=CMLib.tracking().buildGridList(newRoom, newTitle.getOwnerName(), 100);
+					for(int d=0;d<Directions.NUM_DIRECTIONS();d++)
+					{
+						if(d==Directions.GATE)
+							continue;
+						Room R3=newRoom.getRoomInDir(d);
+						if(R3 == null)
+						{
+							R3=CMLib.tracking().getCalculatedAdjacentRoom(rooms, R3, d);
+							if(R3!=null)
+							{
+								newRoom.rawDoors()[d]=R3;
+								if(R3.rawDoors()[Directions.getOpDirectionCode(d)]==null)
+									R3.rawDoors()[Directions.getOpDirectionCode(d)]=newRoom;
+							}
+						}
+					}
+				}
 				CMLib.law().colorRoomForSale(newRoom, newTitle, true);
 				newTitle.updateLot(null);
 			}
@@ -973,7 +999,7 @@ public class BuildingSkill extends CraftingSkill implements CraftorAbility
 		}
 		case DOOR:
 		{
-			this.buildDoor(recipe, room, dir);
+			this.buildDoor(recipe, room, dir, CMath.s_int(recipe[RCP_LEVEL]));
 			break;
 		}
 		case ITEM:
@@ -1286,6 +1312,7 @@ public class BuildingSkill extends CraftingSkill implements CraftorAbility
 		if(("SURVEY").startsWith(str.toUpperCase()))
 		{
 			//TODO: FINISH
+			//TODO: OK, but what's it do again?
 		}
 
 		designTitle="";
@@ -1588,6 +1615,18 @@ public class BuildingSkill extends CraftingSkill implements CraftorAbility
 				return false;
 			}
 			dir=Directions.DOWN;
+		}
+
+		if(flags.contains(Flag.UPONLY))
+		{
+			final Room nextRoom=mob.location().getRoomInDir(Directions.UP);
+			final Exit exitRoom=mob.location().getExitInDir(Directions.UP);
+			if((nextRoom!=null)&&(exitRoom!=null)&&(nextRoom.roomID().length()>0))
+			{
+				commonTell(mob,L("You may not build that here!"));
+				return false;
+			}
+			dir=Directions.UP;
 		}
 
 		if(flags.contains(Flag.CAVEONLY))

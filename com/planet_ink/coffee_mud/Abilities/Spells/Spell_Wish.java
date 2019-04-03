@@ -745,10 +745,13 @@ public class Spell_Wish extends Spell
 				}
 				if(newRoom!=null)
 				{
-					bringThangHere(mob,newRoom,target);
-					newRoom.show(mob, null, CMMsg.MSG_OK_VISUAL, L("<S-NAME> appears!"));
-					wishDrain(mob,baseLoss,false);
-					return true;
+					if(CMLib.flags().canAccess(mob, newRoom))
+					{
+						bringThangHere(mob,newRoom,target);
+						newRoom.show(mob, null, CMMsg.MSG_OK_VISUAL, L("<S-NAME> appears!"));
+						wishDrain(mob,baseLoss,false);
+						return true;
+					}
 				}
 			}
 
@@ -1108,7 +1111,8 @@ public class Spell_Wish extends Spell
 						}
 						else
 						{
-							while(MT.basePhyStats().level()>newLevel)
+							int tries=MT.basePhyStats().level();
+							while((MT.basePhyStats().level()>newLevel)&&(tries-->0))
 							{
 								CMLib.leveler().unLevel(MT);
 								MT.setExperience(CMLib.leveler().getLevelExperience(MT.basePhyStats().level()-1));

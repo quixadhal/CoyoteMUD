@@ -1354,7 +1354,7 @@ public class CoffeeUtensils extends StdLibrary implements CMMiscUtils
 	}
 
 	@Override
-	public String builtPrompt(final MOB mob, final String prompt)
+	public String buildPrompt(final MOB mob, final String prompt)
 	{
 		final StringBuffer buf=new StringBuffer("\n\r");
 		String promptUp=null;
@@ -1483,15 +1483,69 @@ public class CoffeeUtensils extends StdLibrary implements CMMiscUtils
 					break;
 				case 'a':
 				{
-					buf.append(CMLib.factions().getRangePercent(CMLib.factions().AlignID(),mob.fetchFaction(CMLib.factions().AlignID()))+"%");
+					buf.append(CMLib.factions().getRangePercent(CMLib.factions().getAlignmentID(),mob.fetchFaction(CMLib.factions().getAlignmentID()))+"%");
 					c++;
 					break;
 				}
 				case 'A':
 				{
-					final Faction.FRange FR = CMLib.factions().getRange(CMLib.factions().AlignID(), mob.fetchFaction(CMLib.factions().AlignID()));
-					buf.append((FR != null) ? FR.name() : "" + mob.fetchFaction(CMLib.factions().AlignID()));
+					final Faction.FRange FR = CMLib.factions().getRange(CMLib.factions().getAlignmentID(), mob.fetchFaction(CMLib.factions().getAlignmentID()));
+					buf.append((FR != null) ? FR.name() : "" + mob.fetchFaction(CMLib.factions().getAlignmentID()));
 					c++;
+					break;
+				}
+				case 'f':
+				{
+					if(c<(prompt.length()-3))
+					{
+						if(promptUp==null)
+							promptUp=prompt.toUpperCase();
+						final String promptSub=promptUp.substring(c+1);
+						for(final Enumeration<Faction> f=CMLib.factions().factions();f.hasMoreElements();)
+						{
+							final Faction F=f.nextElement();
+							if(promptSub.startsWith(F.factionID()))
+							{
+								c+=1+F.factionID().length();
+								buf.append(CMLib.factions().getRangePercent(F.factionID(),mob.fetchFaction(F.factionID()))+"%");
+								break;
+							}
+							if(promptSub.startsWith(F.upperName()))
+							{
+								c+=1+F.name().length();
+								buf.append(CMLib.factions().getRangePercent(F.factionID(),mob.fetchFaction(F.factionID()))+"%");
+								break;
+							}
+						}
+					}
+					break;
+				}
+				case 'F':
+				{
+					if(c<(prompt.length()-3))
+					{
+						if(promptUp==null)
+							promptUp=prompt.toUpperCase();
+						final String promptSub=promptUp.substring(c+1);
+						for(final Enumeration<Faction> f=CMLib.factions().factions();f.hasMoreElements();)
+						{
+							final Faction F=f.nextElement();
+							if(promptSub.startsWith(F.factionID()))
+							{
+								c+=1+F.factionID().length();
+								final Faction.FRange FR = CMLib.factions().getRange(F.factionID(), mob.fetchFaction(F.factionID()));
+								buf.append((FR != null) ? FR.name() : "" + mob.fetchFaction(CMLib.factions().getAlignmentID()));
+								break;
+							}
+							if(promptSub.startsWith(F.upperName()))
+							{
+								c+=1+F.name().length();
+								final Faction.FRange FR = CMLib.factions().getRange(F.factionID(), mob.fetchFaction(F.factionID()));
+								buf.append((FR != null) ? FR.name() : "" + mob.fetchFaction(CMLib.factions().getAlignmentID()));
+								break;
+							}
+						}
+					}
 					break;
 				}
 				case 'B':
@@ -1843,13 +1897,13 @@ public class CoffeeUtensils extends StdLibrary implements CMMiscUtils
 							break;
 						case 'n':
 						{
-							final Faction.FRange FR = CMLib.factions().getRange(CMLib.factions().AlignID(), A.getAreaIStats()[Area.Stats.AVG_ALIGNMENT.ordinal()]);
+							final Faction.FRange FR = CMLib.factions().getRange(CMLib.factions().getAlignmentID(), A.getAreaIStats()[Area.Stats.AVG_ALIGNMENT.ordinal()]);
 							buf.append((FR==null)?"":FR.name());
 							c+=2;
 							break;
 						}
 						case 'N':
-							final Faction.FRange FR = CMLib.factions().getRange(CMLib.factions().AlignID(), A.getAreaIStats()[Area.Stats.MED_ALIGNMENT.ordinal()]);
+							final Faction.FRange FR = CMLib.factions().getRange(CMLib.factions().getAlignmentID(), A.getAreaIStats()[Area.Stats.MED_ALIGNMENT.ordinal()]);
 							buf.append((FR==null)?"":FR.name());
 							c+=2;
 							break;

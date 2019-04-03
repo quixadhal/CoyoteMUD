@@ -1,5 +1,5 @@
 # Build 5.9.8 Release ?
-  1. New skills: Informant, AutoSwipe
+  1. New skills: Informant, AutoSwipe, Find Clan Home, Find Clan Ship, Letter of Marque
   2. New wainwrighting & smelting recipes
   3. Longlook to mobs now shows interesting body part info.
   4. Combining BRIEF and COMPRESS now results in SUPERBRIEF!
@@ -7,7 +7,7 @@
   6. New standard races: Pegasus, Pegacorn
   7. Improvements to glassblowing and boatwright recipes.
   8. Journal messages can now be forwarded to the senders game mailbox, even if smtp server isn't running.
-  9. Can now use CREATE A CAT to quickly generate a GenMOB of a particular race.
+  9. Can now use CREATE A CAT/COW to quickly generate a GenMOB of a particular race.
   10. Items in npc mob inventory can now be set to populate only at boot time.
   11. Private property left untampered for mud-months will get increasingly "Dusty". Use CLEAN.
   12. Channel backlogs can now be managed from the Journal Browser in the MUDGrinder
@@ -44,8 +44,25 @@
   43. All the ClassNESS behaviors (Fighterness, Thiefness, etc) can have min/max ticks and chance).
   44. New account and player flags: NOTOP and NOSTATS, to keep players off the top lists
   45. New clan flags: NOTROPHY, to prevent a clan from earning trophies
-  46. Lots of new landscaping recipes.
+  46. Lots of new landscaping, irrigation, masonry, etc recipes.
   47. Ranged songs/plays/dances are now OPT-IN instead of automatic.  See help on e.g. Long Dancing 
+  48. Yet more changes to the buy/sell formula vis-a-vis charisma.
+  49. Lock/Unlock message now includes the name of the key.  Also, new <O-WITHNAME> to support this.
+  50. New item types: GenFixture and GenFurniture, to make ungettables that can be pushed and pulled.
+  51. Artisans with a specific focus will get a special character class name that can be toggled with ARTFOCUS.
+  52. Factions now support social change triggers
+  53. Can now browse the postal system in the player manager in mudgrinder.
+  54. Any faction can now be added to the prompt using the new %f, %F syntax
+  55. New optional faction: Law/Chaos inclination.  See FACTIONS in ini file for where to include it.
+  56. New optional prayers: Dispel Law, Dispel Chaos, Infuse Discipline, Infuse Moderation, Infuse Impunity, 
+  57. New optional prayers: Hunt Law, Hunt Chaos, Protection from Chaos, Protection from Law, 
+  58. New optional prayers: Sense Chaos, Sense Law, Taint of Chaos, Word of Law, Word of Chaos  
+  59. New optional chants: White Moon, Purple Moon, Natural Order
+  60. New property: Prop_ShortEffects
+  61. New optional skill mana usage system: MANACOMPOUND - see ini file or mudgrinder
+  62. WebMacroCreamer now supports @elif?...@ syntax. Also new Macro: CheckFactionLoaded
+  63. New Archon skill CRECORD -- a developer tool for auto-snooping combat logs.
+  64. New spells: Improved Repairing Aura, Mass Repairing Aura
 
 # Build 5.9.7 Release 08/29/2018
    1. Scholars gain XP from visiting bookstores, and can study dissertations.

@@ -121,7 +121,7 @@ public class StdMOB implements MOB
 	/* containers of items and attributes */
 	protected SVector<Item>					inventory		= new SVector<Item>(1);
 	protected CMUniqSortSVec<Ability>		abilitys		= new CMUniqSortSVec<Ability>(1);
-	protected int[]							abilityUseTrig	= new int[3];
+	protected int[]							abilityUseTrig	= new int[Ability.USAGEINDEX_TOTAL];
 	protected STreeMap<String, int[][]>		abilityUseCache	= new STreeMap<String, int[][]>();
 	protected STreeMap<String, Integer>		expertises		= new STreeMap<String, Integer>();
 	protected SVector<Ability>				affects			= new SVector<Ability>(1);
@@ -607,23 +607,29 @@ public class StdMOB implements MOB
 	{
 		if (M == null)
 			return;
-		me=this;
-		if (!isGeneric())
+		synchronized(this)
 		{
-			final PhyStats oldBase=basePhyStats;
-			basePhyStats = (PhyStats) M.basePhyStats().copyOf();
-			phyStats = (PhyStats) M.phyStats().copyOf();
-			basePhyStats.setAbility(oldBase.ability());
-			basePhyStats.setRejuv(oldBase.rejuv());
-			basePhyStats.setLevel(oldBase.level());
-			phyStats.setAbility(oldBase.ability());
-			phyStats.setRejuv(oldBase.rejuv());
-			phyStats.setLevel(oldBase.level());
+			me=this;
 		}
-		else
+		synchronized(M)
 		{
-			basePhyStats = (PhyStats) M.basePhyStats().copyOf();
-			phyStats = (PhyStats) M.phyStats().copyOf();
+			if (!isGeneric())
+			{
+				final PhyStats oldBase=basePhyStats;
+				basePhyStats = (PhyStats) M.basePhyStats().copyOf();
+				phyStats = (PhyStats) M.phyStats().copyOf();
+				basePhyStats.setAbility(oldBase.ability());
+				basePhyStats.setRejuv(oldBase.rejuv());
+				basePhyStats.setLevel(oldBase.level());
+				phyStats.setAbility(oldBase.ability());
+				phyStats.setRejuv(oldBase.rejuv());
+				phyStats.setLevel(oldBase.level());
+			}
+			else
+			{
+				basePhyStats = (PhyStats) M.basePhyStats().copyOf();
+				phyStats = (PhyStats) M.phyStats().copyOf();
+			}
 		}
 
 		affectPhyStats = new ApplyAffectPhyStats<Ability>(this);
@@ -641,7 +647,7 @@ public class StdMOB implements MOB
 
 		inventory= new SVector<Item>();
 		abilitys= new CMUniqSortSVec<Ability>();
-		abilityUseTrig = new int[3];
+		abilityUseTrig = new int[Ability.USAGEINDEX_TOTAL];
 		abilityUseCache= new STreeMap<String,int[][]>();
 		behaviors= new CMUniqSortSVec<Behavior>();
 		tattoos	= new CMUniqNameSortSVec<Tattoo>();
@@ -1019,7 +1025,6 @@ public class StdMOB implements MOB
 	}
 
 	@SuppressWarnings("unchecked")
-
 	@Override
 	public void recoverMaxState()
 	{
@@ -3855,7 +3860,7 @@ public class StdMOB implements MOB
 					if ((riding != null) && (CMLib.map().roomLocation(riding) != R))
 						setRiding(null);
 
-					if ((!isMonster) && (soulMate() == null))
+					if ((!isMonster) && (soulMate() == null) && (ageMinutes >= 0))
 					{
 						CMLib.coffeeTables().bump(this, CoffeeTableRow.STAT_TICKSONLINE);
 						if (((++tickAgeCounter) * CMProps.getTickMillis()) >= AGE_MILLIS_THRESHOLD)
@@ -4577,23 +4582,16 @@ public class StdMOB implements MOB
 		Ability A=abilitys.find(ID);
 		if(A!=null)
 			return A;
-		for(final Pair<Clan,Integer> p : clans())
+		if(clans.size()>0)
 		{
-			A=p.first.clanAbilities(this).find(ID);
-			if(A!=null)
-				return A;
+			for(final Pair<Clan,Integer> p : clans())
+			{
+				A=p.first.clanAbilities(this).find(ID);
+				if(A!=null)
+					return A;
+			}
 		}
-		final Race R = charStats().getMyRace();
-		A=R.racialAbilities(this).find(ID);
-		if(A!=null)
-			return A;
-		for (final Enumeration<Ability> a = allAbilities(); a.hasMoreElements();)
-		{
-			A = a.nextElement();
-			if (A.Name().equalsIgnoreCase(ID))
-				return A;
-		}
-		return null;
+		return charStats().getMyRace().racialAbilities(this).find(ID);
 	}
 
 	@Override
@@ -4699,7 +4697,7 @@ public class StdMOB implements MOB
 			Pair<Clan,Integer> p=clans.get(clanID);
 			if(p==null)
 			{
-				final Clan C=CMLib.clans().getClan(clanID);
+				final Clan C=CMLib.clans().getClanAnyHost(clanID);
 				if(C==null)
 					Log.errOut("StdMOB","Unknown clan: "+clanID+" on "+Name()+" in "+CMLib.map().getDescriptiveExtendedRoomID(location()));
 				else
@@ -5004,7 +5002,10 @@ public class StdMOB implements MOB
 	public void delExpertise(final String baseCode)
 	{
 		if(baseCode==null)
+		{
+			clearAbilityUsageCache();
 			return;
+		}
 		if(expertises.remove(baseCode.toUpperCase())==null)
 		{
 			final Entry<String,Integer> p=CMath.getStringFollowedByNumber(baseCode, true);

@@ -6,8 +6,6 @@ import com.planet_ink.coffee_mud.Libraries.interfaces.AbilityMapper.AbilityMappi
 import com.planet_ink.coffee_mud.Libraries.interfaces.XMLLibrary.XMLTag;
 import com.planet_ink.coffee_mud.core.threads.ServiceEngine;
 
-import javafx.geometry.Pos;
-
 import com.planet_ink.coffee_mud.core.*;
 import com.planet_ink.coffee_mud.core.CMLib.Library;
 import com.planet_ink.coffee_mud.core.CMSecurity.DbgFlag;
@@ -387,7 +385,7 @@ public class Clans extends StdLibrary implements ClanManager
 	}
 
 	@Override
-	public Clan fetchClan(final String id)
+	public Clan getClanExact(final String id)
 	{
 		if((id==null)||(id.length()==0))
 			return null;
@@ -404,7 +402,7 @@ public class Clans extends StdLibrary implements ClanManager
 			return null;
 		for(final ClanManager cLib : getOtherClanLibAllHosts())
 		{
-			final Clan C=cLib.fetchClan(id);
+			final Clan C=cLib.getClanExact(id);
 			if(C!=null)
 				return C;
 		}

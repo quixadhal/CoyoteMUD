@@ -999,7 +999,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 	{
 		if((thisStr==null)||(thisStr.length()==0))
 			return new Vector<String>(1);
-		return CMParms.parseSpaces(CMLib.english().stripPunctuation(thisStr), true);
+		return CMParms.parseSpaces(stripPunctuation(thisStr), true);
 	}
 
 	public boolean equalsPunctuationless(final char[] strC, final char[] str2C)
@@ -1543,13 +1543,13 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 	}
 
 	@Override
-	public long numPossibleGold(final Environmental mine, String itemID)
+	public long parseNumPossibleGold(final Environmental mine, String moneyStr)
 	{
-		if(itemID.toUpperCase().trim().startsWith("A PILE OF "))
-			itemID=itemID.substring(10);
-		if(CMath.isInteger(itemID))
+		if(moneyStr.toUpperCase().trim().startsWith("A PILE OF "))
+			moneyStr=moneyStr.substring(10);
+		if(CMath.isInteger(moneyStr))
 		{
-			final long num=CMath.s_long(itemID);
+			final long num=CMath.s_long(moneyStr);
 			if(mine instanceof MOB)
 			{
 				List<Coins> V=CMLib.beanCounter().getStandardCurrency((MOB)mine,CMLib.beanCounter().getCurrency(mine));
@@ -1565,9 +1565,9 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 						return num;
 				}
 			}
-			return CMath.s_long(itemID);
+			return CMath.s_long(moneyStr);
 		}
-		final Vector<String> V=CMParms.parse(itemID);
+		final Vector<String> V=CMParms.parse(moneyStr);
 		if((V.size()>1)
 		&&((CMath.isInteger(V.firstElement()))
 		&&(matchAnyCurrencySet(CMParms.combine(V,1))!=null)))
@@ -1600,13 +1600,13 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 	}
 
 	@Override
-	public String numPossibleGoldCurrency(final Environmental mine, String itemID)
+	public String parseNumPossibleGoldCurrency(final Environmental mine, String moneyStr)
 	{
-		if(itemID.toUpperCase().trim().startsWith("A PILE OF "))
-			itemID=itemID.substring(10);
-		if(CMath.isInteger(itemID))
+		if(moneyStr.toUpperCase().trim().startsWith("A PILE OF "))
+			moneyStr=moneyStr.substring(10);
+		if(CMath.isInteger(moneyStr))
 		{
-			final long num=CMath.s_long(itemID);
+			final long num=CMath.s_long(moneyStr);
 			if(mine instanceof MOB)
 			{
 				List<Coins> V=CMLib.beanCounter().getStandardCurrency((MOB)mine,CMLib.beanCounter().getCurrency(mine));
@@ -1624,7 +1624,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 			}
 			return CMLib.beanCounter().getCurrency(mine);
 		}
-		final Vector<String> V=CMParms.parse(itemID);
+		final Vector<String> V=CMParms.parse(moneyStr);
 		if((V.size()>1)&&(CMath.isInteger(V.firstElement())))
 			return matchAnyCurrencySet(CMParms.combine(V,1));
 		else
@@ -1662,7 +1662,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 	}
 
 	@Override
-	public double numPossibleGoldDenomination(final Environmental mine, final String currency, String moneyStr)
+	public double parseNumPossibleGoldDenomination(final Environmental mine, final String currency, String moneyStr)
 	{
 		if(moneyStr.toUpperCase().trim().startsWith("A PILE OF "))
 			moneyStr=moneyStr.substring(10);
@@ -1764,7 +1764,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 	}
 
 	@Override
-	public Item possibleRoomGold(final MOB seer, final Room room, final Container container, String moneyStr)
+	public Item parsePossibleRoomGold(final MOB seer, final Room room, final Container container, String moneyStr)
 	{
 		if(moneyStr.toUpperCase().trim().startsWith("A PILE OF "))
 			moneyStr=moneyStr.substring(10);
@@ -1812,7 +1812,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 	}
 
 	@Override
-	public Item bestPossibleGold(final MOB mob, final Container container, String itemID)
+	public Item parseBestPossibleGold(final MOB mob, final Container container, String itemID)
 	{
 		if(itemID.toUpperCase().trim().startsWith("A PILE OF "))
 			itemID=itemID.substring(10);
@@ -1885,7 +1885,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 	}
 
 	@Override
-	public List<Container> possibleContainers(final MOB mob, final List<String> commands, final Filterer<Environmental> filter, final boolean withContentOnly)
+	public List<Container> parsePossibleContainers(final MOB mob, final List<String> commands, final Filterer<Environmental> filter, final boolean withContentOnly)
 	{
 		final Vector<Container> V=new Vector<Container>(1);
 		if(commands.size()==1)
@@ -1975,7 +1975,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 	}
 
 	@Override
-	public Item possibleContainer(final MOB mob, final List<String> commands, final boolean withStuff, final Filterer<Environmental> filter)
+	public Item parsePossibleContainer(final MOB mob, final List<String> commands, final boolean withStuff, final Filterer<Environmental> filter)
 	{
 		if(commands.size()==1)
 			return null;
@@ -2028,7 +2028,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 	}
 
 	@Override
-	public String returnTime(long millis, final long ticks)
+	public String stringifyElapsedTimeOrTicks(long millis, final long ticks)
 	{
 		String avg="";
 		if(ticks>0)
@@ -2053,34 +2053,36 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 	}
 
 	@Override
-	public Triad<String, Double, Long> parseMoneyStringSDL(final MOB mob, final String amount, String correctCurrency)
+	public Triad<String, Double, Long> parseMoneyStringSDL(final MOB mob, final String moneyStr, String correctCurrency)
 	{
 		double b=0;
 		String myCurrency=CMLib.beanCounter().getCurrency(mob);
 		double denomination=1.0;
 		if(correctCurrency==null)
 			correctCurrency=myCurrency;
-		if(amount.length()>0)
+		if(moneyStr.length()>0)
 		{
-			myCurrency=CMLib.english().numPossibleGoldCurrency(mob,amount);
+			myCurrency=parseNumPossibleGoldCurrency(mob,moneyStr);
 			if(myCurrency!=null)
 			{
-				denomination=CMLib.english().numPossibleGoldDenomination(null,correctCurrency,amount);
-				final long num=CMLib.english().numPossibleGold(null,amount);
+				denomination=parseNumPossibleGoldDenomination(null,correctCurrency,moneyStr);
+				final long num=parseNumPossibleGold(null,moneyStr);
 				b=CMath.mul(denomination,num);
 			}
 			else
 				myCurrency=CMLib.beanCounter().getCurrency(mob);
 		}
+		if((denomination == 0)||(b == 0))
+			return null;
 		return new Triad<String,Double,Long>(myCurrency,Double.valueOf(denomination),Long.valueOf(Math.round(b/denomination)));
 	}
 
 	@Override
-	public int calculateMaxToGive(final MOB mob, final List<String> commands, final boolean breakPackages, final Environmental checkWhat, final boolean getOnly)
+	public int parseMaxToGive(final MOB mob, final List<String> commands, final boolean breakPackages, final Environmental checkWhat, final boolean getOnly)
 	{
 		int maxToGive=Integer.MAX_VALUE;
 		if((commands.size()>1)
-		&&(CMLib.english().numPossibleGold(mob,CMParms.combine(commands,0))==0))
+		&&(parseNumPossibleGold(mob,CMParms.combine(commands,0))==0))
 		{
 			if(CMath.s_int(commands.get(0))>0)
 			{
@@ -2163,8 +2165,8 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 					{
 						final Environmental toWhat=CMLib.materials().unbundle((Item)fromWhat,1,null);
 						if((toWhat==null)
-						||((!CMLib.english().containsString(toWhat.name(), getName))
-							&&(!CMLib.english().containsString(toWhat.displayText(), getName))))
+						||((!containsString(toWhat.name(), getName))
+							&&(!containsString(toWhat.displayText(), getName))))
 						{
 							return maxToGive;
 						}

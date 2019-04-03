@@ -563,13 +563,13 @@ public class CMProtocols extends StdLibrary implements ProtocolLibrary
 		return pre+"^<IMAGE '"+fixedFilenames[1]+"' URL=\""+fixedFilenames[0]+"\" "+parms+"^>^N"+post;
 	}
 
-	@SuppressWarnings({"unchecked","rawtypes"})
+	@SuppressWarnings("unchecked")
 	public String getHashedMXPImage(final String key)
 	{
-		Map<String,String> H=(Map)Resources.getResource("MXP_IMAGES");
+		Map<String,String> H=(Map<String,String>)Resources.getResource("MXP_IMAGES");
 		if(H==null)
 			getDefaultMXPImage(null);
-		H=(Map)Resources.getResource("MXP_IMAGES");
+		H=(Map<String,String>)Resources.getResource("MXP_IMAGES");
 		if(H==null)
 			return "";
 		return getHashedMXPImage(H,key);
@@ -596,13 +596,14 @@ public class CMProtocols extends StdLibrary implements ProtocolLibrary
 		return s;
 	}
 
-	@Override @SuppressWarnings({"unchecked","rawtypes"})
+	@Override
 	public String getDefaultMXPImage(final Object O)
 	{
 		if((CMProps.getVar(Str.MXPIMAGEPATH).length()==0)
 		||(CMSecurity.isDisabled(CMSecurity.DisFlag.MXP)))
 			return "";
-		Map<String,String> H=(Map)Resources.getResource("PARSED: mxp_images.ini");
+		@SuppressWarnings("unchecked")
+		Map<String,String> H=(Map<String,String>)Resources.getResource("PARSED: mxp_images.ini");
 		if(H==null)
 		{
 			H=new Hashtable<String,String>();
@@ -1167,7 +1168,7 @@ public class CMProtocols extends StdLibrary implements ProtocolLibrary
 		case ALIGNMENT:
 			if(M!=null)
 			{
-				final Faction.FRange FR=CMLib.factions().getRange(CMLib.factions().AlignID(),M.fetchFaction(CMLib.factions().AlignID()));
+				final Faction.FRange FR=CMLib.factions().getRange(CMLib.factions().getAlignmentID(),M.fetchFaction(CMLib.factions().getAlignmentID()));
 				if(FR!=null)
 					return FR.name();
 			}
@@ -1310,7 +1311,7 @@ public class CMProtocols extends StdLibrary implements ProtocolLibrary
 		case ALIGNMENT:
 			if(M!=null)
 			{
-				final Faction.FRange FR=CMLib.factions().getRange(CMLib.factions().AlignID(),M.fetchFaction(CMLib.factions().AlignID()));
+				final Faction.FRange FR=CMLib.factions().getRange(CMLib.factions().getAlignmentID(),M.fetchFaction(CMLib.factions().getAlignmentID()));
 				if(FR!=null)
 					buf.write(FR.name().toLowerCase().getBytes(Session.MSDP_CHARSET));
 			}
@@ -2240,7 +2241,7 @@ public class CMProtocols extends StdLibrary implements ProtocolLibrary
 						doc.append("\"fatigue\":").append(mob.curState().getFatigue()).append(",");
 						if(mob.playerStats()!=null)
 							doc.append("\"stink_pct\":").append(CMath.round(100.0 * mob.playerStats().getHygiene()/PlayerStats.HYGIENE_DELIMIT)).append(",");
-						final int align=mob.fetchFaction(CMLib.factions().AlignID());
+						final int align=mob.fetchFaction(CMLib.factions().getAlignmentID());
 						if(align!=Integer.MAX_VALUE)
 							doc.append("\"align\":").append(align).append(",");
 						int state=3;
@@ -2379,7 +2380,7 @@ public class CMProtocols extends StdLibrary implements ProtocolLibrary
 								.append("\"mv\":").append(M.curState().getMovement()).append(",")
 								.append("\"mmv\":").append(M.maxState().getMovement()).append(",")
 								.append("\"lvl\":").append(M.phyStats().level()).append(",");
-							final int align=mob.fetchFaction(CMLib.factions().AlignID());
+							final int align=mob.fetchFaction(CMLib.factions().getAlignmentID());
 							if(align!=Integer.MAX_VALUE)
 								doc.append("\"align\":").append(align).append(",");
 							doc.append("\"tnl\":").append(M.getExpNeededLevel());

@@ -608,7 +608,9 @@ public interface Ability extends Environmental
 	/** index into internal cache used by usageCost(MOB,boolean) @see com.planet_ink.coffee_mud.Abilities.interfaces.Ability#usageCost(MOB,boolean) */
 	public final static int CACHEINDEX_EXPERTISE=2;
 	/** index into internal cache used by usageCost(MOB,boolean) @see com.planet_ink.coffee_mud.Abilities.interfaces.Ability#usageCost(MOB,boolean) */
-	public final static int CACHEINDEX_TOTAL=3;
+	public final static int CACHEINDEX_LASTTIME=3;
+	/** index into internal cache used by usageCost(MOB,boolean) @see com.planet_ink.coffee_mud.Abilities.interfaces.Ability#usageCost(MOB,boolean) */
+	public final static int CACHEINDEX_TOTAL=4;
 
 	/** Constant for overrideMana to denote that the skill uses all of a players mana @see com.planet_ink.coffee_mud.Abilities.interfaces.Ability#usageCost(MOB,boolean) */
 	public final static int COST_ALL=Integer.MAX_VALUE;
@@ -623,6 +625,12 @@ public interface Ability extends Environmental
 	public final static int USAGEINDEX_MOVEMENT=1;
 	/** index into usageCost(MOB,boolean) array for the amount of hp this skill costs @see com.planet_ink.coffee_mud.Abilities.interfaces.Ability#usageCost(MOB,boolean) */
 	public final static int USAGEINDEX_HITPOINTS=2;
+	/** index into usageCost(MOB,boolean) array index for last time used @see com.planet_ink.coffee_mud.Abilities.interfaces.Ability#usageCost(MOB,boolean) */
+	public final static int USAGEINDEX_TIMELSW=0;
+	/** index into usageCost(MOB,boolean) array index for counts used @see com.planet_ink.coffee_mud.Abilities.interfaces.Ability#usageCost(MOB,boolean) */
+	public final static int USAGEINDEX_COUNT=1;
+	/** index into usageCost(MOB,boolean) array sized @see com.planet_ink.coffee_mud.Abilities.interfaces.Ability#usageCost(MOB,boolean) */
+	public final static int USAGEINDEX_TOTAL=3;
 
 	/** constant returned by classificationCode() designating this ability as a Skill @see com.planet_ink.coffee_mud.Abilities.interfaces.Ability#classificationCode() */
 	public static final int ACODE_SKILL=0;
@@ -940,6 +948,12 @@ public interface Ability extends Environmental
 	public static final long FLAG_MINDALTERING=2147483648L;
 	/** constant mask for the flags() method designating that this ability tortures in some way @see com.planet_ink.coffee_mud.Abilities.interfaces.Ability#flags() */
 	public static final long FLAG_TORTURING=4294967296L;
+	/** constant mask for the flags() method designating that this ability is a law effect @see com.planet_ink.coffee_mud.Abilities.interfaces.Ability#flags() */
+	public static final long FLAG_LAW=8589934592L;
+	/** constant mask for the flags() method designating that this ability is a chaos  effect @see com.planet_ink.coffee_mud.Abilities.interfaces.Ability#flags() */
+	public static final long FLAG_CHAOS=17179869184L;
+	/** constant mask for the flags() method designating that this ability is a moderate effect @see com.planet_ink.coffee_mud.Abilities.interfaces.Ability#flags() */
+	public static final long FLAG_MODERATE=FLAG_LAW|FLAG_CHAOS;
 
 	/** array of string describtions for the FLAG_* constants, indexed by their values */
 	public static final String[] FLAG_DESCS=
@@ -974,8 +988,11 @@ public interface Ability extends Environmental
 		"AGGROING",
 		"TIDEALTERING",
 		"SUNSUMMONING",
+		"NOUNINVOKING",
 		"MINDALTERING",
-		"TORTURING"
+		"TORTURING",
+		"LAW",
+		"CHAOS"
 	};
 
 	/** constant for the abstractQuality and other methods.  Means that this skill would not make the target happy. see {@link com.planet_ink.coffee_mud.Abilities.interfaces.Ability#abstractQuality()}*/

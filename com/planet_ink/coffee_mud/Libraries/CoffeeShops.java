@@ -449,7 +449,7 @@ public class CoffeeShops extends StdLibrary implements ShoppingLibrary
 		return 1.0;
 	}
 
-	protected double itemPriceFactor(final Environmental E, final Room R, final String[] priceFactors, final boolean pawnTo)
+	protected double itemPriceFactor(final Environmental product, final Room R, final String[] priceFactors, final boolean pawnTo)
 	{
 		if(priceFactors.length==0)
 			return 1.0;
@@ -457,11 +457,11 @@ public class CoffeeShops extends StdLibrary implements ShoppingLibrary
 		int x=0;
 		String factorMask=null;
 		ItemPossessor oldOwner=null;
-		if(E instanceof Item)
+		if(product instanceof Item)
 		{
-			oldOwner=((Item)E).owner();
+			oldOwner=((Item)product).owner();
 			if(R!=null)
-				((Item)E).setOwner(R);
+				((Item)product).setOwner(R);
 		}
 		for (final String priceFactor : priceFactors)
 		{
@@ -469,19 +469,19 @@ public class CoffeeShops extends StdLibrary implements ShoppingLibrary
 			x=factorMask.indexOf(' ');
 			if(x<0)
 				continue;
-			if(CMLib.masking().maskCheck(factorMask.substring(x+1).trim(),E,false))
+			if(CMLib.masking().maskCheck(factorMask.substring(x+1).trim(),product,false))
 				factor*=CMath.s_double(factorMask.substring(0,x).trim());
 		}
-		if(E instanceof Item)
-			((Item)E).setOwner(oldOwner);
+		if(product instanceof Item)
+			((Item)product).setOwner(oldOwner);
 		if(factor!=0.0)
 			return factor;
 		return 1.0;
 	}
 
 	@Override
-	public ShopKeeper.ShopPrice sellingPrice(final MOB seller,
-											 final MOB buyer,
+	public ShopKeeper.ShopPrice sellingPrice(final MOB sellerShopM,
+											 final MOB buyerCustM,
 											 final Environmental product,
 											 final ShopKeeper shopKeeper,
 											 final CoffeeShop shop,
@@ -504,58 +504,41 @@ public class CoffeeShops extends StdLibrary implements ShoppingLibrary
 		else
 			val.absoluteGoldPrice=rawSpecificGoldPrice(product,shop);
 
-		if(buyer==null)
+		if(buyerCustM==null)
 		{
 			if(val.absoluteGoldPrice>0.0)
-				val.absoluteGoldPrice=CMLib.beanCounter().abbreviatedRePrice(seller,val.absoluteGoldPrice);
+				val.absoluteGoldPrice=CMLib.beanCounter().abbreviatedRePrice(sellerShopM,val.absoluteGoldPrice);
 			return val;
 		}
 
-		double prejudiceFactor=prejudiceFactor(buyer,shopKeeper.finalPrejudiceFactors(),false);
+		double prejudiceFactor=prejudiceFactor(buyerCustM,shopKeeper.finalPrejudiceFactors(),false);
 		final Room loc=CMLib.map().roomLocation(shopKeeper);
 		prejudiceFactor*=itemPriceFactor(product,loc,shopKeeper.finalItemPricingAdjustments(),false);
 		val.absoluteGoldPrice=CMath.mul(prejudiceFactor,val.absoluteGoldPrice);
 
 		// the price is 200% at 0 charisma, and 100% at 35
-		if(seller.isMonster() && (!CMLib.flags().isGolem(seller)))
+		if(sellerShopM.isMonster() && (!CMLib.flags().isGolem(sellerShopM)))
 		{
-			final int buyerCha=buyer.charStats().getStat(CharStats.STAT_CHARISMA);
-			final int buyerMaxCha=buyer.charStats().getMaxStat(CharStats.STAT_CHARISMA);
-			final int buyerAdjCha;
-			final int buyerExtraCha;
-			if(buyerCha > buyerMaxCha)
-			{
-				buyerAdjCha = buyerMaxCha;
-				buyerExtraCha = buyerCha - buyerMaxCha;
-			}
-			else
-			{
-				buyerAdjCha = buyerCha;
-				buyerExtraCha = 0;
-			}
-			final int sellerMaxWis=buyer.charStats().getMaxStat(CharStats.STAT_WISDOM);
-			int sellerWis=seller.charStats().getStat(CharStats.STAT_WISDOM);
-			if(sellerWis < 3)
-				sellerWis = 3;
-			if(sellerWis > sellerMaxWis)
-				sellerWis = sellerMaxWis;
-			val.absoluteGoldPrice=val.absoluteGoldPrice
-								 +val.absoluteGoldPrice
-								 -(buyerAdjCha/(10*sellerWis)+(buyerExtraCha/20*buyerMaxCha));
+			final double buyerCha=buyerCustM.charStats().getStat(CharStats.STAT_CHARISMA);
+			final double buyerMinCha = (buyerCha < 1) ? 1 : buyerCha;
+			final double sellerWis=sellerShopM.charStats().getStat(CharStats.STAT_WISDOM);
+			final double sellerMinWis = (sellerWis < 3) ? 3 : sellerWis;
+			final double denom = (buyerMinCha + sellerMinWis) * 0.8;
+			val.absoluteGoldPrice=(val.absoluteGoldPrice*2)-(val.absoluteGoldPrice*((buyerMinCha-sellerMinWis)/denom));
 		}
 
 		if(includeSalesTax)
 		{
-			final double salesTax=getSalesTax(seller.getStartRoom(),seller);
+			final double salesTax=getSalesTax(sellerShopM.getStartRoom(),sellerShopM);
 			val.absoluteGoldPrice+=((salesTax>0.0)?(CMath.mul(val.absoluteGoldPrice,CMath.div(salesTax,100.0))):0.0);
 		}
 		if(val.absoluteGoldPrice<=0.0)
 			val.absoluteGoldPrice=1.0;
 		else
-			val.absoluteGoldPrice=CMLib.beanCounter().abbreviatedRePrice(seller,val.absoluteGoldPrice);
+			val.absoluteGoldPrice=CMLib.beanCounter().abbreviatedRePrice(sellerShopM,val.absoluteGoldPrice);
 
 		// the magical aura discount for miscmagic (potions, anything else.. MUST be basePhyStats tho!
-		if((CMath.bset(buyer.basePhyStats().disposition(),PhyStats.IS_BONUS))
+		if((CMath.bset(buyerCustM.basePhyStats().disposition(),PhyStats.IS_BONUS))
 		&&(product instanceof MiscMagic)
 		&&(val.absoluteGoldPrice>2.0))
 			val.absoluteGoldPrice/=2;
@@ -769,8 +752,8 @@ public class CoffeeShops extends StdLibrary implements ShoppingLibrary
 	}
 
 	@Override
-	public ShopKeeper.ShopPrice pawningPrice(final MOB seller,
-											 final MOB buyer,
+	public ShopKeeper.ShopPrice pawningPrice(final MOB buyerShopM,
+											 final MOB sellerCustM,
 											 Environmental product,
 											 final ShopKeeper shopKeeper,
 											 final CoffeeShop shop)
@@ -807,23 +790,32 @@ public class CoffeeShops extends StdLibrary implements ShoppingLibrary
 			else
 				val.absoluteGoldPrice=rawSpecificGoldPrice(product,shop);
 
-			if(buyer==null)
+			if(sellerCustM==null)
 			{
 				val.absoluteGoldPrice *= number;
 				return val;
 			}
 
-			double prejudiceFactor=prejudiceFactor(buyer,shopKeeper.finalPrejudiceFactors(),true);
+			double prejudiceFactor=prejudiceFactor(sellerCustM,shopKeeper.finalPrejudiceFactors(),true);
 			final Room loc=CMLib.map().roomLocation(shopKeeper);
 			prejudiceFactor*=itemPriceFactor(product,loc,shopKeeper.finalItemPricingAdjustments(),true);
 			val.absoluteGoldPrice=CMath.mul(prejudiceFactor,val.absoluteGoldPrice);
 
-			// gets the shopkeeper a deal on junk.  Pays 5% at 3 charisma, and 50% at 35
-			double buyPrice=CMath.div(CMath.mul(val.absoluteGoldPrice,buyer.charStats().getStat(CharStats.STAT_CHARISMA)),70.0);
+			double buyPrice=val.absoluteGoldPrice;
+			if(buyerShopM.isMonster() && (!CMLib.flags().isGolem(buyerShopM)))
+			{
+				final double sellerCha=sellerCustM.charStats().getStat(CharStats.STAT_CHARISMA);
+				final double sellerMinCha = (sellerCha < 1) ? 1 : sellerCha;
+				final double buyerWis=buyerShopM.charStats().getStat(CharStats.STAT_WISDOM);
+				final double buyerMinWis = (buyerWis < 3) ? 3 : buyerWis;
+				final double denom = (sellerMinCha + buyerMinWis) * 0.8;
+				buyPrice=(buyPrice/2)+((buyPrice/2)*((sellerMinCha-buyerMinWis)/denom));
+
+			}
 			if(!(product instanceof Ability))
 				buyPrice=CMath.mul(buyPrice,1.0-getStockSizeDevaluation(shopKeeper,product,number));
 
-			final double sellPrice=sellingPrice(seller,buyer,product,shopKeeper,shop, false).absoluteGoldPrice;
+			final double sellPrice=sellingPrice(buyerShopM,sellerCustM,product,shopKeeper,shop, false).absoluteGoldPrice;
 
 			if(buyPrice>sellPrice)
 				val.absoluteGoldPrice=sellPrice;
@@ -860,8 +852,8 @@ public class CoffeeShops extends StdLibrary implements ShoppingLibrary
 	}
 
 	@Override
-	public boolean standardSellEvaluation(final MOB seller,
-										  final MOB buyer,
+	public boolean standardSellEvaluation(final MOB buyerShopM,
+										  final MOB sellerCustM,
 										  final Environmental product,
 										  final ShopKeeper shop,
 										  final double maxToPay,
@@ -872,12 +864,12 @@ public class CoffeeShops extends StdLibrary implements ShoppingLibrary
 		&&(shop.doISellThis(product))
 		&&(!(product instanceof Coins)))
 		{
-			final Room sellerR=seller.location();
-			if(sellerR!=null)
+			final Room shopRoom=buyerShopM.location();
+			if(shopRoom!=null)
 			{
-				int medianLevel=sellerR.getArea().getPlayerLevel();
+				int medianLevel=shopRoom.getArea().getPlayerLevel();
 				if(medianLevel==0)
-					medianLevel=sellerR.getArea().getAreaIStats()[Area.Stats.MED_LEVEL.ordinal()];
+					medianLevel=shopRoom.getArea().getAreaIStats()[Area.Stats.MED_LEVEL.ordinal()];
 				if(medianLevel>0)
 				{
 					final String range=CMParms.getParmStr(shop.finalPrejudiceFactors(),"RANGE","0");
@@ -895,43 +887,44 @@ public class CoffeeShops extends StdLibrary implements ShoppingLibrary
 					&&((((Physical)product).phyStats().level()>(medianLevel+rangeI))
 						||(((Physical)product).phyStats().level()<(medianLevel-rangeI))))
 					{
-						CMLib.commands().postSay(seller,buyer,L("I'm sorry, that's out of my level range."),true,false);
+						CMLib.commands().postSay(buyerShopM,sellerCustM,L("I'm sorry, that's out of my level range."),true,false);
 						return false;
 					}
 				}
 			}
 			if((product instanceof Item)
-			&& (!CMLib.law().mayOwnThisItem(buyer, (Item)product))
-			&& (!CMLib.flags().isEvil(seller)))
+			&& (!CMLib.law().mayOwnThisItem(sellerCustM, (Item)product))
+			&& ((!CMLib.flags().isEvil(buyerShopM))
+				||(CMLib.flags().isLawful(buyerShopM))))
 			{
-				CMLib.commands().postSay(seller,buyer,L("I don't buy stolen goods."),true,false);
+				CMLib.commands().postSay(buyerShopM,sellerCustM,L("I don't buy stolen goods."),true,false);
 				return false;
 			}
-			final double yourValue=pawningPrice(seller,buyer,product,shop, shop.getShop()).absoluteGoldPrice;
+			final double yourValue=pawningPrice(buyerShopM,sellerCustM,product,shop, shop.getShop()).absoluteGoldPrice;
 			if(yourValue<2)
 			{
 				if(!isLotTooLarge(shop, product))
-					CMLib.commands().postSay(seller,buyer,L("I'm not interested."),true,false);
+					CMLib.commands().postSay(buyerShopM,sellerCustM,L("I'm not interested."),true,false);
 				else
-					CMLib.commands().postSay(seller,buyer,L("I'm not interested in the whole lot, but maybe a smaller count..."),true,false);
+					CMLib.commands().postSay(buyerShopM,sellerCustM,L("I'm not interested in the whole lot, but maybe a smaller count..."),true,false);
 				return false;
 			}
 			if((product instanceof Physical)&&CMLib.flags().isEnspelled((Physical)product) || CMLib.flags().isOnFire((Physical)product))
 			{
-				CMLib.commands().postSay(seller, buyer, L("I won't buy that in it's present state."), true, false);
+				CMLib.commands().postSay(buyerShopM, sellerCustM, L("I won't buy that in it's present state."), true, false);
 				return false;
 			}
 			if((sellNotValue)&&(yourValue>maxToPay))
 			{
 				if(yourValue>maxEverPaid)
-					CMLib.commands().postSay(seller,buyer,L("That's way out of my price range! Try AUCTIONing it."),true,false);
+					CMLib.commands().postSay(buyerShopM,sellerCustM,L("That's way out of my price range! Try AUCTIONing it."),true,false);
 				else
-					CMLib.commands().postSay(seller,buyer,L("Sorry, I can't afford that right now.  Try back later."),true,false);
+					CMLib.commands().postSay(buyerShopM,sellerCustM,L("Sorry, I can't afford that right now.  Try back later."),true,false);
 				return false;
 			}
 			if(product instanceof Ability)
 			{
-				CMLib.commands().postSay(seller,buyer,L("I'm not interested."),true,false);
+				CMLib.commands().postSay(buyerShopM,sellerCustM,L("I'm not interested."),true,false);
 				return false;
 			}
 			if((product instanceof Container)&&(((Container)product).hasALock()))
@@ -947,106 +940,106 @@ public class CoffeeShops extends StdLibrary implements ShoppingLibrary
 					else
 					if(CMLib.flags().isEnspelled(I) || CMLib.flags().isOnFire(I))
 					{
-						CMLib.commands().postSay(seller, buyer, L("I won't buy the contents of that in it's present state."), true, false);
+						CMLib.commands().postSay(buyerShopM, sellerCustM, L("I won't buy the contents of that in it's present state."), true, false);
 						return false;
 					}
 					else
-					if((!CMLib.law().mayOwnThisItem(buyer, I))
-					&& (!CMLib.flags().isEvil(seller)))
+					if((!CMLib.law().mayOwnThisItem(sellerCustM, I))
+					&& (!CMLib.flags().isEvil(buyerShopM)))
 					{
-						CMLib.commands().postSay(seller,buyer,L("I don't buy stolen goods."),true,false);
+						CMLib.commands().postSay(buyerShopM,sellerCustM,L("I don't buy stolen goods."),true,false);
 						return false;
 					}
 				}
 				if(!found)
 				{
-					CMLib.commands().postSay(seller,buyer,L("I won't buy that back unless you put the key in it."),true,false);
+					CMLib.commands().postSay(buyerShopM,sellerCustM,L("I won't buy that back unless you put the key in it."),true,false);
 					return false;
 				}
 			}
-			if((product instanceof Item)&&(buyer.isMine(product)))
+			if((product instanceof Item)&&(sellerCustM.isMine(product)))
 			{
-				final CMMsg msg2=CMClass.getMsg(buyer,product,CMMsg.MSG_DROP,null);
-				if(!buyer.location().okMessage(buyer,msg2))
+				final CMMsg msg2=CMClass.getMsg(sellerCustM,product,CMMsg.MSG_DROP,null);
+				if(!sellerCustM.location().okMessage(sellerCustM,msg2))
 					return false;
 			}
 			return true;
 		}
-		CMLib.commands().postSay(seller,buyer,L("I'm sorry, I'm not buying those."),true,false);
+		CMLib.commands().postSay(buyerShopM,sellerCustM,L("I'm sorry, I'm not buying those."),true,false);
 		return false;
 	}
 
 	@Override
-	public boolean standardBuyEvaluation(final MOB seller,
-										 final MOB buyer,
+	public boolean standardBuyEvaluation(final MOB sellerShopM,
+										 final MOB buyerCustM,
 										 final Environmental product,
 										 final ShopKeeper shop,
 										 final boolean buyNotView)
 	{
 		if((product!=null)
-		&&(shop.getShop().doIHaveThisInStock("$"+product.Name()+"$",buyer)))
+		&&(shop.getShop().doIHaveThisInStock("$"+product.Name()+"$",buyerCustM)))
 		{
 			if(buyNotView)
 			{
-				final ShopKeeper.ShopPrice price=sellingPrice(seller,buyer,product,shop,shop.getShop(), true);
-				if((price.experiencePrice>0)&&(price.experiencePrice>buyer.getExperience()))
+				final ShopKeeper.ShopPrice price=sellingPrice(sellerShopM,buyerCustM,product,shop,shop.getShop(), true);
+				if((price.experiencePrice>0)&&(price.experiencePrice>buyerCustM.getExperience()))
 				{
-					CMLib.commands().postSay(seller,buyer,L("You aren't experienced enough to buy @x1.",product.name()),false,false);
+					CMLib.commands().postSay(sellerShopM,buyerCustM,L("You aren't experienced enough to buy @x1.",product.name()),false,false);
 					return false;
 				}
-				if((price.questPointPrice>0)&&(price.questPointPrice>buyer.getQuestPoint()))
+				if((price.questPointPrice>0)&&(price.questPointPrice>buyerCustM.getQuestPoint()))
 				{
-					CMLib.commands().postSay(seller,buyer,L("You don't have enough quest points to buy @x1.",product.name()),false,false);
+					CMLib.commands().postSay(sellerShopM,buyerCustM,L("You don't have enough quest points to buy @x1.",product.name()),false,false);
 					return false;
 				}
 				if((price.absoluteGoldPrice>0.0)
-				&&(price.absoluteGoldPrice>CMLib.beanCounter().getTotalAbsoluteShopKeepersValue(buyer,seller)))
+				&&(price.absoluteGoldPrice>CMLib.beanCounter().getTotalAbsoluteShopKeepersValue(buyerCustM,sellerShopM)))
 				{
-					CMLib.commands().postSay(seller,buyer,L("You can't afford to buy @x1.",product.name()),false,false);
+					CMLib.commands().postSay(sellerShopM,buyerCustM,L("You can't afford to buy @x1.",product.name()),false,false);
 					return false;
 				}
 			}
 			if(product instanceof Item)
 			{
-				if(((Item)product).phyStats().level()>buyer.phyStats().level())
+				if(((Item)product).phyStats().level()>buyerCustM.phyStats().level())
 				{
-					CMLib.commands().postSay(seller,buyer,L("That's too advanced for you, I'm afraid."),true,false);
+					CMLib.commands().postSay(sellerShopM,buyerCustM,L("That's too advanced for you, I'm afraid."),true,false);
 					return false;
 				}
 			}
-			if((product instanceof LandTitle)
+			if((product instanceof PrivateProperty)
 			&&((shop.isSold(ShopKeeper.DEAL_CLANDSELLER))||(shop.isSold(ShopKeeper.DEAL_CSHIPSELLER))))
 			{
-				final Pair<Clan,Integer> clanPair=CMLib.clans().findPrivilegedClan(buyer, Clan.Function.PROPERTY_OWNER);
+				final Pair<Clan,Integer> clanPair=CMLib.clans().findPrivilegedClan(buyerCustM, Clan.Function.PROPERTY_OWNER);
 				if(clanPair==null)
 				{
-					if(!buyer.clans().iterator().hasNext())
-						CMLib.commands().postSay(seller,buyer,L("I only sell to clans."),true,false);
+					if(!buyerCustM.clans().iterator().hasNext())
+						CMLib.commands().postSay(sellerShopM,buyerCustM,L("I only sell to clans."),true,false);
 					else
-					if(!buyer.isMonster())
-						CMLib.commands().postSay(seller,buyer,L("You are not authorized by your clan to handle property."),true,false);
+					if(!buyerCustM.isMonster())
+						CMLib.commands().postSay(sellerShopM,buyerCustM,L("You are not authorized by your clan to handle property."),true,false);
 					return false;
 				}
 			}
 			if(product instanceof MOB)
 			{
-				if(buyer.totalFollowers()>=buyer.maxFollowers())
+				if(buyerCustM.totalFollowers()>=buyerCustM.maxFollowers())
 				{
-					CMLib.commands().postSay(seller,buyer,L("You can't accept any more followers."),true,false);
+					CMLib.commands().postSay(sellerShopM,buyerCustM,L("You can't accept any more followers."),true,false);
 					return false;
 				}
 				if((CMProps.getIntVar(CMProps.Int.FOLLOWLEVELDIFF)>0)
-				&&(!CMSecurity.isAllowed(seller,seller.location(),CMSecurity.SecFlag.ORDER))
-				&&(!CMSecurity.isAllowed(buyer,buyer.location(),CMSecurity.SecFlag.ORDER)))
+				&&(!CMSecurity.isAllowed(sellerShopM,sellerShopM.location(),CMSecurity.SecFlag.ORDER))
+				&&(!CMSecurity.isAllowed(buyerCustM,buyerCustM.location(),CMSecurity.SecFlag.ORDER)))
 				{
-					if(seller.phyStats().level() > (buyer.phyStats().level() + CMProps.getIntVar(CMProps.Int.FOLLOWLEVELDIFF)))
+					if(sellerShopM.phyStats().level() > (buyerCustM.phyStats().level() + CMProps.getIntVar(CMProps.Int.FOLLOWLEVELDIFF)))
 					{
-						buyer.tell(L("@x1 is too advanced for you.",product.name()));
+						buyerCustM.tell(L("@x1 is too advanced for you.",product.name()));
 						return false;
 					}
-					if(seller.phyStats().level() < (buyer.phyStats().level() - CMProps.getIntVar(CMProps.Int.FOLLOWLEVELDIFF)))
+					if(sellerShopM.phyStats().level() < (buyerCustM.phyStats().level() - CMProps.getIntVar(CMProps.Int.FOLLOWLEVELDIFF)))
 					{
-						buyer.tell(L("@x1 is too inexperienced for you.",product.name()));
+						buyerCustM.tell(L("@x1 is too inexperienced for you.",product.name()));
 						return false;
 					}
 				}
@@ -1057,7 +1050,7 @@ public class CoffeeShops extends StdLibrary implements ShoppingLibrary
 				{
 					final MOB teacher=CMClass.getMOB("Teacher");
 					final Ability teachableA=getTrainableAbility(teacher, (Ability)product);
-					if((teachableA==null)||(!teachableA.canBeLearnedBy(teacher,buyer)))
+					if((teachableA==null)||(!teachableA.canBeLearnedBy(teacher,buyerCustM)))
 					{
 						teacher.destroy();
 						return false;
@@ -1074,25 +1067,25 @@ public class CoffeeShops extends StdLibrary implements ShoppingLibrary
 					else
 					if(A.canTarget(Ability.CAN_ITEMS))
 					{
-						Item I=buyer.fetchWieldedItem();
+						Item I=buyerCustM.fetchWieldedItem();
 						if(I==null)
-							I=buyer.fetchHeldItem();
+							I=buyerCustM.fetchHeldItem();
 						if(I==null)
 						{
-							CMLib.commands().postSay(seller,buyer,L("You need to be wielding or holding the item you want this cast on."),true,false);
+							CMLib.commands().postSay(sellerShopM,buyerCustM,L("You need to be wielding or holding the item you want this cast on."),true,false);
 							return false;
 						}
 					}
 					else
 					{
-						CMLib.commands().postSay(seller,buyer,L("I don't know how to sell that spell."),true,false);
+						CMLib.commands().postSay(sellerShopM,buyerCustM,L("I don't know how to sell that spell."),true,false);
 						return false;
 					}
 				}
 			}
 			return true;
 		}
-		CMLib.commands().postSay(seller,buyer,L("I don't have that in stock.  Ask for my LIST."),true,false);
+		CMLib.commands().postSay(sellerShopM,buyerCustM,L("I don't have that in stock.  Ask for my LIST."),true,false);
 		return false;
 	}
 
@@ -1106,14 +1099,14 @@ public class CoffeeShops extends StdLibrary implements ShoppingLibrary
 	{
 		final StringBuilder str=new StringBuilder("");
 		int csize=0;
-		final Vector<Environmental> inventory=new Vector<Environmental>();
+		final List<Environmental> inventory=new ArrayList<Environmental>(rawInventory.size());
 		Environmental E=null;
 		for(int i=0;i<rawInventory.size();i++)
 		{
 			E=rawInventory.get(i);
 			if(shownInInventory(seller,buyer,E,shop)
 			&&((mask==null)||(mask.length()==0)||(CMLib.english().containsString(E.name(),mask))))
-				inventory.addElement(E);
+				inventory.add(E);
 		}
 
 		if(inventory.size()>0)
@@ -1127,7 +1120,7 @@ public class CoffeeShops extends StdLibrary implements ShoppingLibrary
 			ShopKeeper.ShopPrice price=null;
 			for(int i=0;i<inventory.size();i++)
 			{
-				E=inventory.elementAt(i);
+				E=inventory.get(i);
 				price=sellingPrice(seller,buyer,E,shop,shop.getShop(), true);
 				if((price.experiencePrice>0)&&(((""+price.experiencePrice).length()+2)>(4+csize)))
 					csize=(""+price.experiencePrice).length()-2;
@@ -1156,7 +1149,7 @@ public class CoffeeShops extends StdLibrary implements ShoppingLibrary
 			String col=null;
 			for(int i=0;i<inventory.size();i++)
 			{
-				E=inventory.elementAt(i);
+				E=inventory.get(i);
 				price=sellingPrice(seller,buyer,E,shop,shop.getShop(), true);
 				col=null;
 				if(csize >= 0)
@@ -1226,12 +1219,15 @@ public class CoffeeShops extends StdLibrary implements ShoppingLibrary
 	public MOB parseBuyingFor(final MOB buyer, final String message)
 	{
 		MOB mobFor=buyer;
-		if((message!=null)&&(message.length()>0)&&(buyer.location()!=null))
+		if((message!=null)
+		&&(message.length()>0)
+		&&(buyer.location()!=null))
 		{
-			final Vector<String> V=CMParms.parse(message);
-			if(V.elementAt(V.size()-2).equalsIgnoreCase("for"))
+			final List<String> V=CMParms.parse(message);
+			if((V.size()>2)
+			&&(V.get(V.size()-2).equalsIgnoreCase("for")))
 			{
-				String s=V.lastElement();
+				String s=V.get(V.size()-1);
 				if(s.endsWith("."))
 					s=s.substring(0,s.length()-1);
 				final MOB M=buyer.location().fetchInhabitant("$"+s+"$");
@@ -1502,10 +1498,10 @@ public class CoffeeShops extends StdLibrary implements ShoppingLibrary
 					victims[x][1]=M.getVictim();
 				}
 			}
-			final Vector<String> V=new Vector<String>();
+			final List<String> V=new ArrayList<String>();
 			if(A.canTarget(Ability.CAN_MOBS))
 			{
-				V.addElement("$"+mobFor.name()+"$");
+				V.add("$"+mobFor.name()+"$");
 				A.invoke(seller,V,mobFor,true,0);
 			}
 			else
@@ -1520,7 +1516,7 @@ public class CoffeeShops extends StdLibrary implements ShoppingLibrary
 					I=mobFor.fetchItem(null,Wearable.FILTER_UNWORNONLY,"all");
 				if(I!=null)
 				{
-					V.addElement("$"+I.name()+"$");
+					V.add("$"+I.name()+"$");
 					seller.addItem(I);
 					A.invoke(seller,V,I,true,0);
 					seller.delItem(I);
@@ -1563,10 +1559,10 @@ public class CoffeeShops extends StdLibrary implements ShoppingLibrary
 	}
 
 	@Override
-	public List<Environmental> addRealEstateTitles(final List<Environmental> V, final MOB buyer, final CoffeeShop shop, final Room myRoom)
+	public List<Environmental> addRealEstateTitles(final List<Environmental> productsV, final MOB buyer, final CoffeeShop shop, final Room myRoom)
 	{
 		if((myRoom==null)||(buyer==null))
-			return V;
+			return productsV;
 		final Area myArea=myRoom.getArea();
 		String name=buyer.Name();
 		Pair<Clan,Integer> buyerClanPair=null;
@@ -1635,7 +1631,7 @@ public class CoffeeShops extends StdLibrary implements ShoppingLibrary
 					if((T.getOwnerName().length()==0)
 					&&(I.Name().endsWith(" (Copy)")))
 						I.setName(I.Name().substring(0,I.Name().length()-7));
-					V.add(I);
+					productsV.add(I);
 				}
 			}
 		}
@@ -1644,41 +1640,42 @@ public class CoffeeShops extends StdLibrary implements ShoppingLibrary
 		{
 			final PlayerStats pStats = buyer.playerStats();
 			if((pStats != null)&&(pStats.getExtItems()!=null))
-				this.addShipProperty(buyer, V, pStats.getExtItems());
+				this.addShipProperty(buyer, productsV, pStats.getExtItems());
 		}
 		if(shop.isSold(ShopKeeper.DEAL_CSHIPSELLER))
 		{
 			buyerClanPair=CMLib.clans().findPrivilegedClan(buyer, Clan.Function.PROPERTY_OWNER);
 			if((buyerClanPair != null)&&(buyerClanPair.first!=null)&&(buyerClanPair.first.getExtItems()!=null))
-				this.addShipProperty(buyer, V, buyerClanPair.first.getExtItems());
+				this.addShipProperty(buyer, productsV, buyerClanPair.first.getExtItems());
 		}
 
-		if(V.size()<2)
-			return V;
-		final Vector<Environmental> V2=new Vector<Environmental>(V.size());
+		if(productsV.size()<2)
+			return productsV;
+		// this is actually returned
+		final List<Environmental> finalTitleList=new Vector<Environmental>(productsV.size());
 		LandTitle L=null;
 		LandTitle L2=null;
 		int x=-1;
 		int x2=-1;
-		while(V.size()>0)
+		while(productsV.size()>0)
 		{
-			if(((!(V.get(0) instanceof LandTitle)))
-			||((x=(L=(LandTitle)V.get(0)).landPropertyID().lastIndexOf('#'))<0))
+			if(((!(productsV.get(0) instanceof LandTitle)))
+			||((x=(L=(LandTitle)productsV.get(0)).landPropertyID().lastIndexOf('#'))<0))
 			{
-				if(V2.size()==0)
-					V2.addElement(V.remove(0));
+				if(finalTitleList.size()==0)
+					finalTitleList.add(productsV.remove(0));
 				else
-					V2.insertElementAt(V.remove(0),0);
+					finalTitleList.add(0,productsV.remove(0));
 			}
 			else
 			{
 				int lowest=CMath.s_int(L.landPropertyID().substring(x+1).trim());
 				int chk=0;
-				for(int v=1;v<V.size();v++)
+				for(int v=1;v<productsV.size();v++)
 				{
-					if(V.get(v) instanceof LandTitle)
+					if(productsV.get(v) instanceof LandTitle)
 					{
-						L2=(LandTitle)V.get(v);
+						L2=(LandTitle)productsV.get(v);
 						x2=L2.landPropertyID().lastIndexOf('#');
 						if(x2>0)
 						{
@@ -1691,11 +1688,11 @@ public class CoffeeShops extends StdLibrary implements ShoppingLibrary
 						}
 					}
 				}
-				V.remove(L);
-				V2.addElement(L);
+				productsV.remove(L);
+				finalTitleList.add(L);
 			}
 		}
-		return V2;
+		return finalTitleList;
 	}
 
 	@Override

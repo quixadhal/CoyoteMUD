@@ -43,6 +43,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Method;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.net.*;
 import java.util.*;
@@ -66,7 +67,7 @@ import java.sql.*;
 public class MUD extends Thread implements MudHost
 {
 	private static final float	  HOST_VERSION_MAJOR	= (float)5.9;
-	private static final float	  HOST_VERSION_MINOR	= (float)7.5;
+	private static final float	  HOST_VERSION_MINOR	= (float)7.6;
 
 	private static enum MudState
 	{
@@ -100,6 +101,8 @@ public class MUD extends Thread implements MudHost
 	private static List<DBConnector>	databases			= new Vector<DBConnector>();
 	private static List<CM1Server>		cm1Servers			= new Vector<CM1Server>();
 	private static final ServiceEngine	serviceEngine		= new ServiceEngine();
+	private static AtomicBoolean 		bootSync			= new AtomicBoolean(false);
+
 
 	public MUD(final String name)
 	{
@@ -500,6 +503,7 @@ public class MUD extends Thread implements MudHost
 	{
 		CMProps.setBoolAllVar(CMProps.Bool.MUDSTARTED,false);
 		CMProps.setBoolAllVar(CMProps.Bool.MUDSHUTTINGDOWN,true);
+		bootSync.set(false);
 		final AtomicLong shutdownStateTime = new AtomicLong(System.currentTimeMillis());
 		final long shutdownTimeout = 5 * 60 * 1000;
 		final Thread currentShutdownThread=Thread.currentThread();
@@ -1551,11 +1555,31 @@ public class MUD extends Thread implements MudHost
 			}
 
 			CMProps.setUpLowVar(CMProps.Str.MUDSTATUS,"Booting: loading base classes");
+			// wait for baseC
+			while((tCode!=MudHost.MAIN_HOST)
+			&&(!bootSync.get())
+			&&(CMLib.s_sleep(500)))
+			{}
 			if(!CMClass.loadAllCoffeeMudClasses(page))
 			{
 				fatalStartupError(t,0);
 				return false;
 			}
+			CMProps.setUpLowVar(CMProps.Str.MUDSTATUS,"Booting: loading factions");
+			if((tCode==MAIN_HOST)
+			||(checkPrivate&&CMProps.isPrivateToMe("FACTIONS")))
+				CMLib.factions().reloadFactions(CMProps.getVar(CMProps.Str.PREFACTIONS));
+
+			CMProps.setUpLowVar(CMProps.Str.MUDSTATUS,"Booting: initializing classes");
+			CMClass.instance().intializeClasses();
+
+			CMProps.setUpLowVar(CMProps.Str.MUDSTATUS,"Booting: loading expertises");
+			if((tCode==MudHost.MAIN_HOST)||(CMProps.isPrivateToMe("EXPERTISES")))
+			{
+				CMLib.expertises().recompileExpertises();
+				Log.sysOut(Thread.currentThread().getName(),"Expertises defined: "+CMLib.expertises().numExpertises());
+			}
+
 			CMLib.lang().setLocale(CMLib.props().getStr("LANGUAGE"),CMLib.props().getStr("COUNTRY"));
 			if((threadCode==MudHost.MAIN_HOST)
 			||(CMLib.time()!=CMLib.library(MudHost.MAIN_HOST, CMLib.Library.TIME)))
@@ -1565,9 +1589,9 @@ public class MUD extends Thread implements MudHost
 				CMProps.setIntVar(CMProps.Int.TICKSPERMUDDAY,""+((CMProps.getMillisPerMudHour()*CMLib.time().globalClock().getHoursInDay()/CMProps.getTickMillis())));
 				CMProps.setIntVar(CMProps.Int.TICKSPERMUDMONTH,""+((CMProps.getMillisPerMudHour()*CMLib.time().globalClock().getHoursInDay()*CMLib.time().globalClock().getDaysInMonth()/CMProps.getTickMillis())));
 			}
-			if((tCode==MAIN_HOST)
-			||(checkPrivate&&CMProps.isPrivateToMe("FACTIONS")))
-				CMLib.factions().reloadFactions(CMProps.getVar(CMProps.Str.PREFACTIONS));
+
+			if(tCode==MudHost.MAIN_HOST)
+				bootSync.set(true);
 
 			if((tCode==MAIN_HOST)
 			||(checkPrivate&&CMProps.isPrivateToMe("CHANNELS"))
@@ -1598,6 +1622,8 @@ public class MUD extends Thread implements MudHost
 				CMSecurity.setSysOp(page.getStr("SYSOPMASK")); // requires all classes be loaded
 				CMSecurity.parseGroups(page);
 			}
+			else
+				CMSecurity.shareWith(MAIN_HOST);
 
 			if((tCode==MAIN_HOST)
 			||(checkPrivate&&CMProps.isPrivateToMe("SOCIALS")))
